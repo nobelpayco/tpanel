@@ -1,0 +1,1 @@
+function a(){const t=localStorage.getItem("locale")||"tr",e=localStorage.getItem("token");return{headers:{Accept:"application/json","Content-Type":"application/json",Authorization:`Bearer ${e}`,"Accept-Language":t},token:e}}export{a as u};

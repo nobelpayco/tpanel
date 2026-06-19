@@ -1,0 +1,15 @@
+C:\workspace\tpanel\src\PayDoPay.Application\bin\Debug\net10.0\PayDoPay.Application.deps.json
+C:\workspace\tpanel\src\PayDoPay.Application\bin\Debug\net10.0\PayDoPay.Application.dll
+C:\workspace\tpanel\src\PayDoPay.Application\bin\Debug\net10.0\PayDoPay.Application.pdb
+C:\workspace\tpanel\src\PayDoPay.Application\bin\Debug\net10.0\PayDoPay.Domain.dll
+C:\workspace\tpanel\src\PayDoPay.Application\bin\Debug\net10.0\PayDoPay.Domain.pdb
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.csproj.AssemblyReference.cache
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.AssemblyInfoInputs.cache
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.AssemblyInfo.cs
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.csproj.CoreCompileInputs.cache
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.147EE052.Up2Date
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.dll
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\refint\PayDoPay.Application.dll
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\PayDoPay.Application.pdb
+C:\workspace\tpanel\src\PayDoPay.Application\obj\Debug\net10.0\ref\PayDoPay.Application.dll

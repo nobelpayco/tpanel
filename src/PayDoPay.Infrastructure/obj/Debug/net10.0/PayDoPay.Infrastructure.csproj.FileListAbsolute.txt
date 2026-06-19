@@ -1,0 +1,17 @@
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Infrastructure.deps.json
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Infrastructure.dll
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Infrastructure.pdb
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Application.dll
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Domain.dll
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Application.pdb
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\bin\Debug\net10.0\PayDoPay.Domain.pdb
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.csproj.AssemblyReference.cache
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.AssemblyInfoInputs.cache
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.AssemblyInfo.cs
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.csproj.CoreCompileInputs.cache
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.01F198B9.Up2Date
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.dll
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\refint\PayDoPay.Infrastructure.dll
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\PayDoPay.Infrastructure.pdb
+C:\workspace\tpanel\src\PayDoPay.Infrastructure\obj\Debug\net10.0\ref\PayDoPay.Infrastructure.dll
