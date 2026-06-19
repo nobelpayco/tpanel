@@ -1,0 +1,93 @@
+## ============================================================
+##  PayDoPay — .NET 10 (Onion) + Vue 3 SPA migration
+## ============================================================
+
+# ----- .NET / Visual Studio -----
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+.vs/
+.vscode/
+*.swp
+project.lock.json
+artifacts/
+[Tt]est[Rr]esult*/
+*.received.*
+*.trx
+*.coverage
+*.coveragexml
+.idea/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+.nuget/
+
+# ----- Yapılandırma / sırlar -----
+# Bağlantı dizesi, Anthropic/Telegram tokenları içerebilir → commit'lenmemeli.
+appsettings.*.local.json
+appsettings.Development.json
+secrets.json
+*.pfx
+*.key
+.env
+.env.*
+!.env.example
+
+# ----- Node / Vue / Vite (docs/paydopay-v4) -----
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+*.local
+
+# Vite dev cache
+.vite/
+**/.vite/
+
+# NOT: docs/paydopay-v4/public/build/ (Vite manifest + asset'leri) BİLEREK
+# ignore EDİLMİYOR — .NET API bu derlenmiş çıktıyı servis ediyor ve bu ortamda
+# Node kurulu olmadığından yeniden derlenemiyor. Build artefaktı repo'da kalmalı.
+
+# ----- PHP / Laravel kaynağı (docs/paydopay-v4) -----
+docs/paydopay-v4/vendor/
+docs/paydopay-v4/storage/*.key
+docs/paydopay-v4/storage/framework/cache/data/*
+docs/paydopay-v4/storage/framework/sessions/*
+docs/paydopay-v4/storage/framework/views/*
+docs/paydopay-v4/storage/framework/testing/*
+docs/paydopay-v4/storage/logs/*
+docs/paydopay-v4/bootstrap/cache/*.php
+docs/paydopay-v4/.phpunit.result.cache
+docs/paydopay-v4/auth.json
+
+# Kullanıcı yüklemeleri (dekontlar vb.) — runtime verisi
+docs/paydopay-v4/storage/app/public/receipts/
+
+# ----- Genel / OS -----
+*.log
+*.tmp
+*.bak
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.AppleDouble
+run.log
+run.err
+
+# Veritabanı dökümü çok büyükse açın (şu an şema repo'da tutuluyor):
+# docs/database/*.sql
