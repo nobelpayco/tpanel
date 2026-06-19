@@ -69,6 +69,8 @@ docs/paydopay-v4/storage/framework/cache/data/*
 docs/paydopay-v4/storage/framework/sessions/*
 docs/paydopay-v4/storage/framework/views/*
 docs/paydopay-v4/storage/framework/testing/*
+# Laravel dizin yapısını koruyan placeholder .gitignore dosyaları izlensin
+!docs/paydopay-v4/storage/framework/**/.gitignore
 docs/paydopay-v4/storage/logs/*
 docs/paydopay-v4/bootstrap/cache/*.php
 docs/paydopay-v4/.phpunit.result.cache
