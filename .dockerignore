@@ -1,0 +1,21 @@
+# Build context'i küçült — imaja gereksiz dosya girmesin
+**/bin/
+**/obj/
+**/node_modules/
+.git/
+.vs/
+.vscode/
+.idea/
+
+# Laravel referans projesi imaja gerekmez (DB şeması compose'da bind-mount edilir)
+docs/
+
+# Frontend kaynağı imaja gerekmez — yalnızca derlenmiş public/ kopyalanır
+src/frontend/resources/
+src/frontend/node_modules/
+
+# Yerel/geçici
+run.log
+run.err
+*.user
+appsettings.*.local.json

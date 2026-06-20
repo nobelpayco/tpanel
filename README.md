@@ -37,7 +37,7 @@ tpanel/
 │       └── public/build/       # Vite çıktısı (.NET bunu servis eder)
 └── docs/
     ├── paydopay-v4/            # Orijinal Laravel projesi (referans) + runtime storage
-    └── database/paydopay_crm.sql
+    └── database/tpanel_crm.sql
 ```
 
 > **Not:** Backend ve frontend tek origin'den sunulur — .NET hem `/api/*`'i hem Vue SPA'yı (`/`) aynı port üzerinden verir. Frontend `/api` göreli base URL kullanır.
@@ -47,7 +47,7 @@ tpanel/
 ## Gereksinimler
 
 - **.NET 10 SDK** (bu makinede `C:\Program Files\dotnet\dotnet.exe`)
-- **MySQL** — XAMPP ile `localhost:3306`, `paydopay_crm` veritabanı yüklü (`docs/database/paydopay_crm.sql`)
+- **MySQL** — XAMPP ile `localhost:3306`, `paydopay_crm` veritabanı yüklü (`docs/database/tpanel_crm.sql`)
 - **Node.js + pnpm** — *yalnızca frontend'i yeniden derlemek için gerekir.* Sadece çalıştırmak için gerekmez (derlenmiş build depoda mevcut).
 
 ---

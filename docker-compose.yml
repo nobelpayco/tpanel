@@ -1,0 +1,48 @@
+# ============================================================
+#  TPanel — Docker Compose (app + MySQL)
+#  Çalıştırma:  docker compose up -d --build
+#  Panel:       http://localhost:8080   (velmort / 123456)
+# ============================================================
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: paydopay_crm
+      MYSQL_USER: ${DB_USER:-tpanel}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-tpanelpass}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+      # Şema yalnızca İLK başlatmada (boş data dizininde) otomatik yüklenir:
+      - ./docs/database/tpanel_crm.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__MySql: "Server=db;Port=3306;Database=paydopay_crm;User Id=${DB_USER:-tpanel};Password=${DB_PASSWORD:-tpanelpass};CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true"
+      Database__ServerVersion: "8.0.0-mysql"
+      App__Url: "${APP_URL:-http://localhost:8080}"
+      # Opsiyonel — boş bırakılırsa Telegram/AI no-op çalışır:
+      Telegram__BotToken: "${TELEGRAM_BOT_TOKEN:-}"
+      Telegram__PayrouteChatId: "${TELEGRAM_PAYROUTE_CHAT_ID:-}"
+    ports:
+      - "8080:8080"
+    volumes:
+      - storage:/app/storage        # dekont/dosya yüklemeleri kalıcı
+
+volumes:
+  db-data:
+  storage:
