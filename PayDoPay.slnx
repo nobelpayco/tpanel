@@ -1,8 +1,8 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/PayDoPay.Api/PayDoPay.Api.csproj" />
-    <Project Path="src/PayDoPay.Application/PayDoPay.Application.csproj" />
-    <Project Path="src/PayDoPay.Domain/PayDoPay.Domain.csproj" />
-    <Project Path="src/PayDoPay.Infrastructure/PayDoPay.Infrastructure.csproj" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/PayDoPay.Api/PayDoPay.Api.csproj" />
+    <Project Path="src/backend/PayDoPay.Application/PayDoPay.Application.csproj" />
+    <Project Path="src/backend/PayDoPay.Domain/PayDoPay.Domain.csproj" />
+    <Project Path="src/backend/PayDoPay.Infrastructure/PayDoPay.Infrastructure.csproj" />
   </Folder>
 </Solution>
