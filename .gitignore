@@ -58,7 +58,7 @@ pnpm-debug.log*
 .vite/
 **/.vite/
 
-# NOT: docs/paydopay-v4/public/build/ (Vite manifest + asset'leri) BİLEREK
+# NOT: src/frontend/public/build/ (Vite manifest + asset'leri) BİLEREK
 # ignore EDİLMİYOR — .NET API bu derlenmiş çıktıyı servis ediyor ve bu ortamda
 # Node kurulu olmadığından yeniden derlenemiyor. Build artefaktı repo'da kalmalı.
 
