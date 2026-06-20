@@ -25,7 +25,7 @@ Bu depo, mevcut **PHP/Laravel 12 + Vue 3** projesinin (`docs/paydopay-v4`) **.NE
 
 ```
 tpanel/
-├── PayDoPay.slnx               # .NET çözüm dosyası
+├── TPanel.slnx                 # .NET çözüm dosyası
 ├── src/
 │   ├── backend/                # .NET projeleri (Onion)
 │   │   ├── TPanel.Domain/
@@ -108,7 +108,7 @@ pnpm build        # -> public/build güncellenir
 ## Derleme
 
 ```powershell
-dotnet build PayDoPay.slnx -c Release
+dotnet build TPanel.slnx -c Release
 ```
 
 ---

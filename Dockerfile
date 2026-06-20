@@ -10,7 +10,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Önce csproj'lar — restore katmanını cache'le
-COPY PayDoPay.slnx ./
+COPY TPanel.slnx ./
 COPY src/backend/TPanel.Domain/TPanel.Domain.csproj            src/backend/TPanel.Domain/
 COPY src/backend/TPanel.Application/TPanel.Application.csproj   src/backend/TPanel.Application/
 COPY src/backend/TPanel.Infrastructure/TPanel.Infrastructure.csproj src/backend/TPanel.Infrastructure/
