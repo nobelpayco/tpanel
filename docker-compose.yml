@@ -34,6 +34,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__MySql: "Server=db;Port=3306;Database=${DB_NAME:-tpanel_crm};User Id=${DB_USER:-tpanel};Password=${DB_PASSWORD:-tpanelpass};CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true"
       Database__ServerVersion: "8.0.0-mysql"
+      App__Name: "${APP_NAME:-TPanel}"
       App__Url: "${APP_URL:-http://localhost:8080}"
       # Opsiyonel — boş bırakılırsa Telegram/AI no-op çalışır:
       Telegram__BotToken: "${TELEGRAM_BOT_TOKEN:-}"
