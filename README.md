@@ -135,6 +135,84 @@ docker compose up -d --build
 
 Komutlar: `docker compose logs -f app` · `docker compose restart app` · `docker compose down`.
 
+#### Yöntem A — detaylı adımlar (sıfırdan Debian sunucu)
+
+**0) Docker'ı kur (bir kez)** — resmi depodan:
+```bash
+sudo apt update && sudo apt install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+docker compose version          # doğrula
+```
+
+**1) Projeyi al:**
+```bash
+cd /opt && sudo git clone <repo-url> tpanel && cd tpanel
+```
+
+**2) `.env` ayarla:**
+```bash
+cp .env.example .env && nano .env
+# DB_ROOT_PASSWORD / DB_USER / DB_PASSWORD → güçlü şifreler
+# APP_URL → https://panel.alanadiniz.com
+# TELEGRAM_* → opsiyonel (boş bırakılabilir)
+```
+
+**3) Build + başlat** — repo kökündeki `deploy.sh` ile (önkoşul + .env kontrolü + sağlık beklemesi dahil):
+```bash
+./deploy.sh
+# veya elle: docker compose up -d --build
+```
+İlk build birkaç dakika sürer (.NET restore + publish). `up` sırasıyla: `app` imajını derler (publish + derlenmiş SPA gömülür) → MySQL'i başlatır ve **ilk açılışta** `docs/database/tpanel_crm.sql`'i otomatik yükler → healthcheck geçince `app` başlar.
+
+**4) Doğrula:**
+```bash
+docker compose ps                          # running/healthy
+docker compose logs -f app                 # "Now listening on: http://[::]:8080"
+curl http://localhost:8080/api/v1/health   # API sağlık
+```
+
+**5) HTTPS — önüne reverse proxy** (compose yalnızca HTTP 8080 açar):
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+`/etc/nginx/sites-available/tpanel`:
+```nginx
+server {
+    listen 80;
+    server_name panel.alanadiniz.com;
+    client_max_body_size 12M;                 # dekont yüklemeleri için ŞART
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+```bash
+sudo ln -s /etc/nginx/sites-available/tpanel /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d panel.alanadiniz.com   # otomatik TLS
+```
+→ Panel: **https://panel.alanadiniz.com** · giriş `velmort / 123456`.
+
+**6) Günlük operasyonlar:**
+
+| İşlem | Komut |
+|---|---|
+| Kodu güncelle | `git pull && ./deploy.sh` |
+| Logları izle | `docker compose logs -f app` |
+| Yeniden başlat | `docker compose restart app` |
+| Durdur (veri kalır) | `docker compose down` |
+| DB yedeği | `docker compose exec db mysqldump -u root -p"$DB_ROOT_PASSWORD" paydopay_crm > yedek.sql` |
+| Storage yedeği | `docker run --rm -v tpanel_storage:/s -v $PWD:/b alpine tar czf /b/storage.tgz -C /s .` |
+
+> **Şema değişikliği:** init script yalnızca ilk açılışta çalışır. Baştan yüklemek için `docker compose down -v` (⚠️ DB verisini siler) → `./deploy.sh`.
+
 ### Yöntem B — Debian (bare-metal + systemd)
 
 ```bash
