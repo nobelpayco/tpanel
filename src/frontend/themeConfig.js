@@ -10,7 +10,7 @@ import { AppContentLayoutNav, ContentWidth, FooterType, NavbarType } from '@layo
 // Brand'i blade <meta name="app-brand"> tag'inden oku; fallback 'Paylira'.
 const appBrand = (typeof document !== 'undefined'
   ? document.querySelector('meta[name="app-brand"]')?.content
-  : null) || 'Paylira'
+  : null) || 'TPanel'
 
 export const { themeConfig, layoutConfig } = defineThemeConfig({
   app: {

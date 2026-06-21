@@ -22,7 +22,7 @@ public class ViteManifestService
         var configured = config["Frontend:PublicPath"] ?? "../../frontend/public";
         _publicPath = Path.GetFullPath(Path.Combine(env.ContentRootPath, configured));
         // Marka adı tek kaynaktan: App:Name. SPA bunu <meta app-brand>'den okur → tüm UI'a yansır.
-        _brand = System.Net.WebUtility.HtmlEncode(config["App:Name"] ?? "PayDoPay");
+        _brand = System.Net.WebUtility.HtmlEncode(config["App:Name"] ?? "TPanel");
     }
 
     public string PublicPath => _publicPath;
