@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
-      MYSQL_DATABASE: paydopay_crm
+      MYSQL_DATABASE: ${DB_NAME:-tpanel_crm}
       MYSQL_USER: ${DB_USER:-tpanel}
       MYSQL_PASSWORD: ${DB_PASSWORD:-tpanelpass}
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -32,7 +32,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__MySql: "Server=db;Port=3306;Database=paydopay_crm;User Id=${DB_USER:-tpanel};Password=${DB_PASSWORD:-tpanelpass};CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true"
+      ConnectionStrings__MySql: "Server=db;Port=3306;Database=${DB_NAME:-tpanel_crm};User Id=${DB_USER:-tpanel};Password=${DB_PASSWORD:-tpanelpass};CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true"
       Database__ServerVersion: "8.0.0-mysql"
       App__Url: "${APP_URL:-http://localhost:8080}"
       # Opsiyonel — boş bırakılırsa Telegram/AI no-op çalışır:

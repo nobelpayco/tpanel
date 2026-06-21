@@ -157,6 +157,7 @@ cd tpanel
 **2) `.env` ayarla:**
 ```bash
 cp .env.example .env && nano .env
+# DB_NAME → veritabanı adı (varsayılan tpanel_crm)
 # DB_ROOT_PASSWORD / DB_USER / DB_PASSWORD → güçlü şifreler
 # APP_URL → https://nobelpay.me
 # TELEGRAM_* → opsiyonel (boş bırakılabilir)
@@ -210,7 +211,7 @@ sudo certbot --nginx -d nobelpay.me   # otomatik TLS
 | Logları izle | `docker compose logs -f app` |
 | Yeniden başlat | `docker compose restart app` |
 | Durdur (veri kalır) | `docker compose down` |
-| DB yedeği | `docker compose exec db mysqldump -u root -p"$DB_ROOT_PASSWORD" paydopay_crm > yedek.sql` |
+| DB yedeği | `docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' > yedek.sql` |
 | Storage yedeği | `docker run --rm -v tpanel_storage:/s -v $PWD:/b alpine tar czf /b/storage.tgz -C /s .` |
 
 > **Şema değişikliği:** init script yalnızca ilk açılışta çalışır. Baştan yüklemek için `docker compose down -v` (⚠️ DB verisini siler) → `./deploy.sh`.
