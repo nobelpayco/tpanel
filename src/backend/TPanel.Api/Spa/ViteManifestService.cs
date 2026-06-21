@@ -12,14 +12,17 @@ public class ViteManifestService
 {
     private const string Entry = "resources/js/main.js";
     private readonly string _publicPath;
+    private readonly string _brand;
     private readonly object _lock = new();
     private Dictionary<string, ManifestChunk>? _manifest;
     private string? _cachedHtml;
 
     public ViteManifestService(IConfiguration config, IWebHostEnvironment env)
     {
-        var configured = config["Frontend:PublicPath"] ?? "../../docs/paydopay-v4/public";
+        var configured = config["Frontend:PublicPath"] ?? "../../frontend/public";
         _publicPath = Path.GetFullPath(Path.Combine(env.ContentRootPath, configured));
+        // Marka adı tek kaynaktan: App:Name. SPA bunu <meta app-brand>'den okur → tüm UI'a yansır.
+        _brand = System.Net.WebUtility.HtmlEncode(config["App:Name"] ?? "PayDoPay");
     }
 
     public string PublicPath => _publicPath;
@@ -71,8 +74,8 @@ public class ViteManifestService
               <link rel="icon" href="/favicon.ico" />
               <meta name="robots" content="noindex, nofollow" />
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <meta name="app-brand" content="PayDoPay" />
-              <title>PayDoPay</title>
+              <meta name="app-brand" content="{{_brand}}" />
+              <title>{{_brand}}</title>
               <link rel="stylesheet" type="text/css" href="/loader.css" />
             {{tags}}
             </head>
@@ -110,15 +113,15 @@ public class ViteManifestService
         }
     }
 
-    private static string BuildPlaceholder(string manifestPath)
+    private string BuildPlaceholder(string manifestPath)
         => $$"""
             <!DOCTYPE html>
-            <html lang="en"><head><meta charset="UTF-8" /><title>PayDoPay</title></head>
+            <html lang="en"><head><meta charset="UTF-8" /><title>{{_brand}}</title></head>
             <body style="font-family:sans-serif;padding:2rem">
-              <h2>PayDoPay API çalışıyor ✅</h2>
+              <h2>{{_brand}} API çalışıyor ✅</h2>
               <p>Frontend build bulunamadı:</p>
               <code>{{manifestPath}}</code>
-              <p>Frontend'i derlemek için <code>docs/paydopay-v4</code> içinde <code>pnpm install &amp;&amp; pnpm build</code> çalıştırın.</p>
+              <p>Frontend'i derlemek için <code>src/frontend</code> içinde <code>pnpm install &amp;&amp; pnpm build</code> çalıştırın.</p>
               <p>API sağlık kontrolü: <a href="/api/v1/health">/api/v1/health</a></p>
             </body></html>
             """;

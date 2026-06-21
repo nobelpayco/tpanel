@@ -14,7 +14,7 @@ public class FileReceiptStorage : IReceiptStorage
     public FileReceiptStorage(IConfiguration config, IWebHostEnvironmentMarker env)
     {
         // Laravel local disk kökü (storage/app). DB'de 'receipts/...' göreli yolu saklanır.
-        var configured = config["Storage:LocalDiskPath"] ?? "../../docs/paydopay-v4/storage/app";
+        var configured = config["Storage:LocalDiskPath"] ?? "../../../docs/paydopay-v4/storage/app";
         _localDiskBase = Path.GetFullPath(Path.Combine(env.ContentRootPath, configured));
     }
 
