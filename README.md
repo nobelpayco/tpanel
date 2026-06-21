@@ -114,6 +114,101 @@ dotnet build TPanel.slnx -c Release
 
 ---
 
+## Canlı Ortama Kurulum (Production)
+
+Uygulama **tek bir ASP.NET Core süreci**dir — `/api` ile Vue SPA'yı aynı porttan sunar. Önüne TLS için bir reverse proxy (nginx/Caddy), arkasına MySQL/MariaDB konur.
+
+### Yöntem A — Docker (önerilen)
+
+Repoda hazır `Dockerfile` + `docker-compose.yml` var (app + MySQL 8.0; frontend imaja derlenmiş haliyle gömülür, storage kalıcı volume).
+
+```bash
+git clone <repo> tpanel && cd tpanel
+cp .env.example .env          # güçlü şifreler + APP_URL=https://panel.alanadiniz.com
+docker compose up -d --build
+```
+
+- Panel: `http://SUNUCU:8080` (ilk açılışta şema `docs/database/tpanel_crm.sql`'den otomatik yüklenir).
+- **HTTPS:** önüne reverse proxy koyun (`proxy_pass http://127.0.0.1:8080`, `client_max_body_size 12M`) + Let's Encrypt. Caddy ile otomatik TLS de tercih edilebilir.
+- **MariaDB** isterseniz `db` imajını `mariadb:11` yapıp `Database__ServerVersion: "11.4.0-mariadb"` ayarlayın.
+- Şemayı sonradan değiştirdiyseniz: `docker compose down -v` (⚠️ veriyi siler) → yeniden `up`.
+
+Komutlar: `docker compose logs -f app` · `docker compose restart app` · `docker compose down`.
+
+### Yöntem B — Debian (bare-metal + systemd)
+
+```bash
+# 1) Bağımlılıklar (libicu ŞART — uygulama tr-TR kültürü kullanır)
+sudo apt update && sudo apt install -y nginx libicu-dev mariadb-server
+sudo apt install -y aspnetcore-runtime-10.0   # veya self-contained publish ile bu adımı atla
+
+# 2) Veritabanı
+sudo mysql -e "CREATE DATABASE paydopay_crm CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -e "CREATE USER 'tpanel'@'localhost' IDENTIFIED BY 'GUCLU_SIFRE'; GRANT ALL ON paydopay_crm.* TO 'tpanel'@'localhost';"
+mysql -u tpanel -p paydopay_crm < docs/database/tpanel_crm.sql
+
+# 3) Publish (yerelde) + sunucuya kopyala
+dotnet publish src/backend/TPanel.Api -c Release -o publish
+rsync -avz publish/             user@sunucu:/opt/tpanel/app/
+rsync -avz src/frontend/public/ user@sunucu:/opt/tpanel/frontend/
+ssh user@sunucu 'mkdir -p /opt/tpanel/storage/app/public/receipts'
+```
+
+Sunucuda `/opt/tpanel/app/appsettings.Production.json` — **mutlak yollar** + gerçek sırlar:
+```json
+{
+  "ConnectionStrings": { "MySql": "Server=127.0.0.1;Port=3306;Database=paydopay_crm;User Id=tpanel;Password=GUCLU_SIFRE;CharSet=utf8mb4;SslMode=None;AllowPublicKeyRetrieval=true" },
+  "Database": { "ServerVersion": "11.4.0-mariadb" },
+  "Frontend": { "PublicPath": "/opt/tpanel/frontend" },
+  "Storage": { "LocalDiskPath": "/opt/tpanel/storage/app", "PublicDiskPath": "/opt/tpanel/storage/app/public" },
+  "App": { "Url": "https://panel.alanadiniz.com", "Name": "TPanel" }
+}
+```
+
+systemd birimi (`/etc/systemd/system/tpanel.service`):
+```ini
+[Unit]
+Description=TPanel
+After=network.target mariadb.service
+[Service]
+WorkingDirectory=/opt/tpanel/app
+ExecStart=/usr/bin/dotnet /opt/tpanel/app/TPanel.Api.dll
+Restart=always
+User=www-data
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+[Install]
+WantedBy=multi-user.target
+```
+```bash
+sudo chown -R www-data:www-data /opt/tpanel/storage
+sudo systemctl enable --now tpanel
+```
+
+nginx + TLS:
+```nginx
+server {
+    listen 80;
+    server_name panel.alanadiniz.com;
+    client_max_body_size 12M;          # dekont yüklemeleri (≤10MB) için
+    location / { proxy_pass http://127.0.0.1:5000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
+}
+```
+```bash
+sudo certbot --nginx -d panel.alanadiniz.com
+```
+
+### Production'da dikkat edilecekler
+
+- **libicu zorunlu** — uygulama Türkçe (`tr-TR`) biçimlendirme kullanır; eksikse çöker.
+- **`client_max_body_size ≥ 12M`** — dekont yüklemeleri (≤10 MB).
+- **`Database:ServerVersion`** kurulu motora göre olmalı (MySQL ≠ MariaDB).
+- **Tek instance çalıştırın** — günlük snapshot/cron uygulama içinde `HostedService` olarak koşar; 2 instance çift snapshot üretir.
+- **Sırlar** ortam değişkeni / `appsettings.Production.json` ile verilir, repoya commit edilmez. Anthropic API key panel → Sistem Ayarları'ndan (`system_settings`) okunur.
+- Frontend değiştiyse `cd src/frontend && pnpm build` → `public/` çıktısını sunucuya kopyalayın (Docker'da imajı yeniden build edin).
+
+---
+
 ## Yapılandırma
 
 `src/backend/TPanel.Api/appsettings.json` anahtarları:
