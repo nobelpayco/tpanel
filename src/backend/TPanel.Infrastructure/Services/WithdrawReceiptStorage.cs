@@ -10,7 +10,7 @@ public class WithdrawReceiptStorage : IWithdrawReceiptStorage
 
     public WithdrawReceiptStorage(IConfiguration config, IWebHostEnvironmentMarker env)
     {
-        var configured = config["Storage:PublicDiskPath"] ?? "../../../docs/paydopay-v4/storage/app/public";
+        var configured = config["Storage:PublicDiskPath"] ?? "../../../storage/app/public";
         _publicDiskBase = Path.GetFullPath(Path.Combine(env.ContentRootPath, configured));
     }
 

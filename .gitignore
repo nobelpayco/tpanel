@@ -76,8 +76,10 @@ docs/paydopay-v4/bootstrap/cache/*.php
 docs/paydopay-v4/.phpunit.result.cache
 docs/paydopay-v4/auth.json
 
-# Kullanıcı yüklemeleri (dekontlar vb.) — runtime verisi
-docs/paydopay-v4/storage/app/public/receipts/
+# ----- Runtime storage (repo kökü) -----
+# .NET uygulamasinin dekont/export depolamasi. Yuklenen dosyalar runtime
+# verisidir, izlenmez; dizin yapisi storage/app icindeki .gitignore
+# placeholder'lariyla korunur (Laravel-stili: * + !.gitignore).
 
 # ----- Genel / OS -----
 *.log

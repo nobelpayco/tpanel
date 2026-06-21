@@ -55,7 +55,7 @@ public class ExportStore : IExportStore
     public ExportStore(IDbConnectionFactory factory, IClock clock, IConfiguration config, IWebHostEnvironmentMarker env)
     {
         _factory = factory; _clock = clock;
-        var basePath = config["Storage:LocalDiskPath"] ?? "../../../docs/paydopay-v4/storage/app";
+        var basePath = config["Storage:LocalDiskPath"] ?? "../../../storage/app";
         _exportDir = Path.GetFullPath(Path.Combine(env.ContentRootPath, basePath, "exports"));
     }
 

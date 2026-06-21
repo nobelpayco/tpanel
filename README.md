@@ -35,8 +35,9 @@ tpanel/
 │   └── frontend/               # Vue 3 SPA (Vuexy) — kaynak + derlenmiş build
 │       ├── resources/          # Vue kaynak kodu
 │       └── public/build/       # Vite çıktısı (.NET bunu servis eder)
+├── storage/                    # Runtime depolama (dekontlar, export'lar) — .NET buraya yazar
 └── docs/
-    ├── paydopay-v4/            # Orijinal Laravel projesi (referans) + runtime storage
+    ├── paydopay-v4/            # Orijinal Laravel projesi (yalnızca referans)
     └── database/tpanel_crm.sql
 ```
 
@@ -121,7 +122,7 @@ dotnet build TPanel.slnx -c Release
 |---------|----------|
 | `ConnectionStrings:MySql` | MySQL bağlantı dizesi |
 | `Frontend:PublicPath` | SPA static dosya kökü (`../../frontend/public`) |
-| `Storage:LocalDiskPath` / `PublicDiskPath` | Dekont/dosya depolama (`docs/paydopay-v4/storage`) |
+| `Storage:LocalDiskPath` / `PublicDiskPath` | Dekont/dosya depolama (repo kökü `storage/`) |
 | `Telegram:BotToken` / `PayrouteChatId` | Telegram bildirimleri (boşsa no-op) |
 
 > **Sırlar:** Prodüksiyon değerlerini (DB şifresi, Telegram/Anthropic token) `appsettings.json`'a yazıp commit etmeyin; ortam değişkeni veya `appsettings.*.local.json` kullanın (`.gitignore` ile dışlanır). Anthropic API key runtime'da `system_settings` tablosundan okunur.
