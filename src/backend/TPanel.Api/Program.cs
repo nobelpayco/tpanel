@@ -31,7 +31,7 @@ builder.Services
     .AddAuthentication(OpaqueTokenAuthenticationHandler.SchemeName)
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, OpaqueTokenAuthenticationHandler>(
         OpaqueTokenAuthenticationHandler.SchemeName, _ => { });
-builder.Services.AddAuthorization(options => options.AddPayDoPayPolicies());
+builder.Services.AddAuthorization(options => options.AddTPanelPolicies());
 
 builder.Services.AddCors(options =>
 {

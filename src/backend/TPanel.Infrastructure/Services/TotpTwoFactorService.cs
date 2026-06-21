@@ -12,7 +12,7 @@ public class TotpTwoFactorService : ITwoFactorService
 
     public TotpTwoFactorService(IConfiguration config)
     {
-        _issuer = config["App:Name"] ?? "PayDoPay";
+        _issuer = config["App:Name"] ?? "TPanel";
     }
 
     public string GenerateSecret()

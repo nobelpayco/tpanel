@@ -17,7 +17,7 @@ public static class AuthorizationPolicies
     public const string FinancialReports = "FinancialReports";
     public const string PerformanceReports = "PerformanceReports";
 
-    public static void AddPayDoPayPolicies(this AuthorizationOptions options)
+    public static void AddTPanelPolicies(this AuthorizationOptions options)
     {
         Add(options, ManageUsers, RolePermissions.ManageUsers);
         Add(options, ManageTeams, RolePermissions.ManageTeams);

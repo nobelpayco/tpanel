@@ -1,4 +1,4 @@
-# PayDoPay v4 — .NET Core Migrasyon Akış Dokümanı
+# TPanel v4 — .NET Core Migrasyon Akış Dokümanı
 
 > Kaynak: `docs/paydopay-v4` (Laravel 12 + Vue 3 / Vuexy SPA)
 > Hedef: .NET (Soğan / Onion Mimarisi) + MySQL (`docs/database/paydopay_crm.sql`)
@@ -8,7 +8,7 @@
 
 ## 1. Proje Nedir? (İş Tanımı)
 
-PayDoPay, bir **ödeme aracılık / PSP CRM paneli**dir. Bahis/oyun siteleri (merchant) ile son kullanıcılar (player) arasında **havale/EFT tabanlı yatırım (deposit) ve çekim (withdraw)** işlemlerini yönetir. Para fiziksel banka hesapları (IBAN havuzu) üzerinden akar; panel bu hesapları **takımlara (team)** dağıtır, **kasaları (case/kasa)** muhasebeleştirir, **komisyonları** hesaplar ve **ortaklara (partner)** kâr paylaşımı yapar.
+TPanel, bir **ödeme aracılık / PSP CRM paneli**dir. Bahis/oyun siteleri (merchant) ile son kullanıcılar (player) arasında **havale/EFT tabanlı yatırım (deposit) ve çekim (withdraw)** işlemlerini yönetir. Para fiziksel banka hesapları (IBAN havuzu) üzerinden akar; panel bu hesapları **takımlara (team)** dağıtır, **kasaları (case/kasa)** muhasebeleştirir, **komisyonları** hesaplar ve **ortaklara (partner)** kâr paylaşımı yapar.
 
 ### Ana Aktörler
 | Aktör | Tablo | Rol |
@@ -139,12 +139,12 @@ Her varlık için **kasa = son snapshot + bugünün net hareketi**. Snapshot'lar
 ## 5. Hedef Mimari (Soğan / Onion)
 
 ```
-PayDoPay.sln
+TPanel.sln
 ├── src/
-│   ├── PayDoPay.Domain          # Entity'ler, enum'lar, domain servis arayüzleri, iş kuralları (bağımsız)
-│   ├── PayDoPay.Application      # Use-case'ler (servisler/handler), DTO'lar, arayüzler (IRepository, ICallbackService...)
-│   ├── PayDoPay.Infrastructure   # EF Core (MySQL/Pomelo) + Dapper, repository impl, harici servisler (Telegram/Claude/Tron), kuyruk, cron
-│   └── PayDoPay.Api              # ASP.NET Core Web API — controller'lar, middleware (HMAC, idle timeout), auth, SPA servis
+│   ├── TPanel.Domain          # Entity'ler, enum'lar, domain servis arayüzleri, iş kuralları (bağımsız)
+│   ├── TPanel.Application      # Use-case'ler (servisler/handler), DTO'lar, arayüzler (IRepository, ICallbackService...)
+│   ├── TPanel.Infrastructure   # EF Core (MySQL/Pomelo) + Dapper, repository impl, harici servisler (Telegram/Claude/Tron), kuyruk, cron
+│   └── TPanel.Api              # ASP.NET Core Web API — controller'lar, middleware (HMAC, idle timeout), auth, SPA servis
 ├── tests/
 └── docs/ (mevcut kaynak)
 ```
