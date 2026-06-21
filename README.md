@@ -124,7 +124,7 @@ Repoda hazır `Dockerfile` + `docker-compose.yml` var (app + MySQL 8.0; frontend
 
 ```bash
 git clone <repo> tpanel && cd tpanel
-cp .env.example .env          # güçlü şifreler + APP_URL=https://panel.alanadiniz.com
+cp .env.example .env          # güçlü şifreler + APP_URL=https://nobelpay.me
 docker compose up -d --build
 ```
 
@@ -149,14 +149,16 @@ docker compose version          # doğrula
 
 **1) Projeyi al:**
 ```bash
-cd /opt && sudo git clone <repo-url> tpanel && cd tpanel
+cd /opt && sudo git clone <repo-url> tpanel
+sudo chown -R $USER:$USER /opt/tpanel    # <-- eklenecek satır
+cd tpanel
 ```
 
 **2) `.env` ayarla:**
 ```bash
 cp .env.example .env && nano .env
 # DB_ROOT_PASSWORD / DB_USER / DB_PASSWORD → güçlü şifreler
-# APP_URL → https://panel.alanadiniz.com
+# APP_URL → https://nobelpay.me
 # TELEGRAM_* → opsiyonel (boş bırakılabilir)
 ```
 
@@ -182,7 +184,7 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 ```nginx
 server {
     listen 80;
-    server_name panel.alanadiniz.com;
+    server_name nobelpay.me;
     client_max_body_size 12M;                 # dekont yüklemeleri için ŞART
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -196,9 +198,9 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/tpanel /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d panel.alanadiniz.com   # otomatik TLS
+sudo certbot --nginx -d nobelpay.me   # otomatik TLS
 ```
-→ Panel: **https://panel.alanadiniz.com** · giriş `velmort / 123456`.
+→ Panel: **https://nobelpay.me** · giriş `velmort / 123456`.
 
 **6) Günlük operasyonlar:**
 
@@ -239,7 +241,7 @@ Sunucuda `/opt/tpanel/app/appsettings.Production.json` — **mutlak yollar** + g
   "Database": { "ServerVersion": "11.4.0-mariadb" },
   "Frontend": { "PublicPath": "/opt/tpanel/frontend" },
   "Storage": { "LocalDiskPath": "/opt/tpanel/storage/app", "PublicDiskPath": "/opt/tpanel/storage/app/public" },
-  "App": { "Url": "https://panel.alanadiniz.com", "Name": "TPanel" }
+  "App": { "Url": "https://nobelpay.me", "Name": "TPanel" }
 }
 ```
 
@@ -267,13 +269,13 @@ nginx + TLS:
 ```nginx
 server {
     listen 80;
-    server_name panel.alanadiniz.com;
+    server_name nobelpay.me;
     client_max_body_size 12M;          # dekont yüklemeleri (≤10MB) için
     location / { proxy_pass http://127.0.0.1:5000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
 }
 ```
 ```bash
-sudo certbot --nginx -d panel.alanadiniz.com
+sudo certbot --nginx -d nobelpay.me
 ```
 
 ### Production'da dikkat edilecekler
