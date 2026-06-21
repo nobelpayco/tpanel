@@ -106,6 +106,63 @@ public class DepositsController : AdminControllerBase
         return Result(await _service.ResendCallbackAsync(user, id, ct));
     }
 
+    // ---- Manuel yatırım ekleme ----
+    [HttpGet("manual/meta")]
+    public async Task<IActionResult> ManualMeta([FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var user = await LoadUserAsync(_currentUser, ct);
+        if (user is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!user.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+
+        var merchants = await store.GetActiveMerchantsAsync(ct);
+        var teams = await store.GetTeamsForFilterAsync(ct);
+        if (user.HasTeamScope) teams = teams.Where(t => t.Id == user.TeamId).ToList();
+
+        return Ok(new
+        {
+            merchants = merchants.Select(m => new { id = m.Id, name = m.Name }),
+            teams = teams.Select(t => new { id = t.Id, name = t.Name, status = t.Status }),
+        });
+    }
+
+    [HttpGet("manual/team/{teamId:int}")]
+    public async Task<IActionResult> ManualTeamMeta(int teamId, [FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var user = await LoadUserAsync(_currentUser, ct);
+        if (user is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!user.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+        if (user.HasTeamScope && teamId != user.TeamId) return StatusCode(403, new { message = "Yetkisiz." });
+
+        var banks = await store.GetTeamBankAccountsAsync(teamId, ct);
+        var agents = await store.GetTeamAgentsAsync(teamId, ct);
+        return Ok(new
+        {
+            banks = banks.Select(b => new { id = b.Id, name = b.Name }),
+            agents = agents.Select(a => new { id = a.Id, name = a.Name }),
+        });
+    }
+
+    [HttpPost("manual")]
+    public async Task<IActionResult> CreateManual([FromBody] ManualDepositBody body,
+        [FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var user = await LoadUserAsync(_currentUser, ct);
+        if (user is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!user.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+
+        if (body.MerchantId is null or <= 0) return BadRequest(new { message = "Merchant seçilmeli." });
+        var teamId = user.HasTeamScope ? user.TeamId : (body.TeamId ?? 0);
+        if (teamId <= 0) return BadRequest(new { message = "Takım seçilmeli." });
+        if (string.IsNullOrWhiteSpace(body.Name)) return BadRequest(new { message = "Müşteri adı girilmeli." });
+        if (body.Amount is null or <= 0) return BadRequest(new { message = "Geçerli bir tutar girilmeli." });
+
+        var id = await store.CreateManualDepositAsync(
+            body.MerchantId.Value, teamId, body.BankId, body.AgentId,
+            body.Name!.Trim(), body.Amount.Value, user.Id, ClientIp, ct);
+
+        return Ok(new { id, message = "Manuel yatırım eklendi." });
+    }
+
     private static string MimeFromExtension(string ext) => ext.ToLowerInvariant() switch
     {
         ".jpg" or ".jpeg" => "image/jpeg",

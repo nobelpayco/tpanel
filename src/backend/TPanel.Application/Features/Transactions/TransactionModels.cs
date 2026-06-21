@@ -20,6 +20,7 @@ public class TxFilter
     public string? DateTo { get; set; }
     public bool ConvertedOnly { get; set; }
     public bool MissingReceipt { get; set; }
+    public int? AddedType { get; set; }   // 1=Otomatik(API), 2=Manuel, null/0=Hepsi
     public int Page { get; set; } = 1;
     public int PerPage { get; set; } = 50;
 }

@@ -1,0 +1,17 @@
+# pnpm 11 yapılandırması (bu ayarlar artık .npmrc'den değil buradan okunuyor).
+#
+# nodeLinker: hoisted → npm benzeri düz node_modules. Gerekli, çünkü bazı
+# bileşenler doğrudan bağımlılık olmayan paketlere derin import yapıyor
+# (örn. case-report.vue / deposits içinde `flatpickr/dist/l10n/*`). pnpm'in
+# varsayılan izole yapısında bu paketler üst seviyede görünmez ve `vite build`
+# "Rollup failed to resolve import flatpickr/..." ile patlar.
+nodeLinker: hoisted
+
+# Bu paketlerin kurulum (build) script'lerine izin ver — aksi halde pnpm 11
+# bunları atlar ve `pnpm install` ERR_PNPM_IGNORED_BUILDS ile exit 1 verir.
+onlyBuiltDependencies:
+  - esbuild
+  - msw
+  - vue-demi
+  - unrs-resolver
+  - '@scarf/scarf'

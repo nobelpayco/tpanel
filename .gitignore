@@ -62,6 +62,10 @@ pnpm-debug.log*
 # ignore EDİLMİYOR — .NET API bu derlenmiş çıktıyı servis ediyor ve bu ortamda
 # Node kurulu olmadığından yeniden derlenemiyor. Build artefaktı repo'da kalmalı.
 
+# pnpm install/build sırasında otomatik üretilen yardımcı dosyalar (commit'lenmez):
+src/frontend/.eslintrc-auto-import.json
+src/frontend/public/mockServiceWorker.js
+
 # ----- PHP / Laravel kaynağı (docs/paydopay-v4) -----
 docs/paydopay-v4/vendor/
 docs/paydopay-v4/storage/*.key

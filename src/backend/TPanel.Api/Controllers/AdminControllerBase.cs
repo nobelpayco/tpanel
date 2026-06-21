@@ -41,6 +41,7 @@ public abstract class AdminControllerBase : ControllerBase
             DateTo = S("date_to"),
             ConvertedOnly = B("converted_only"),
             MissingReceipt = B("missing_receipt"),
+            AddedType = I("added_type"),
             Page = I("page") ?? 1,
             PerPage = I("per_page") ?? 50,
         };
@@ -68,3 +69,11 @@ public record FlagFakeBody(
 
 public record NotifyMissingBody(
     [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId);
+
+public record ManualDepositBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("merchant_id")] int? MerchantId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("bank_id")] int? BankId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("agent_id")] int? AgentId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("name")] string? Name,
+    [property: System.Text.Json.Serialization.JsonPropertyName("amount")] double? Amount);

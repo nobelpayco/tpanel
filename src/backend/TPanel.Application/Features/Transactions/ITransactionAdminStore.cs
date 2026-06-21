@@ -31,6 +31,11 @@ public interface ITransactionAdminStore
     Task<IReadOnlyList<OptionRow>> GetTeamsForFilterAsync(CancellationToken ct = default);
     Task<IReadOnlyList<OptionRow>> GetBanksAsync(CancellationToken ct = default);
 
+    // ---- Manuel yatırım (added_type=2, status=3 onaylı, callback gönderilmez) ----
+    Task<IReadOnlyList<OptionRow>> GetTeamBankAccountsAsync(int teamId, CancellationToken ct = default);
+    Task<IReadOnlyList<OptionRow>> GetTeamAgentsAsync(int teamId, CancellationToken ct = default);
+    Task<int> CreateManualDepositAsync(int merchantId, int teamId, int? bankId, int? agentId, string name, double amount, int userId, string ip, CancellationToken ct = default);
+
     // ---- Withdraw receipts ----
     Task<bool> HasReceiptAsync(int investId, CancellationToken ct = default);
     Task<IReadOnlyList<ReceiptRow>> GetReceiptsAsync(int investId, CancellationToken ct = default);

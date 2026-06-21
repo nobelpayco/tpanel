@@ -30,7 +30,7 @@ const dateConfig = computed(() => ({ dateFormat: 'Y-m-d', altInput: true, altFor
 const filters = ref({
   id: '', status: 0, merchant: null, team: null, bank: null,
   name: '', player_id: '', order_id: '', u_id: '',
-  min_amount: '', max_amount: '', date_from: '', date_to: '',
+  min_amount: '', max_amount: '', date_from: '', date_to: '', added_type: 0,
 })
 
 const showFilterDialog = ref(false)
@@ -107,6 +107,95 @@ const resendCallback = async (id) => {
   }
 }
 
+// --- Manuel Yatırım Ekle ---
+const showManualDialog = ref(false)
+const manualSaving = ref(false)
+const manualMetaLoading = ref(false)
+const manualTeamLoading = ref(false)
+const manualMerchants = ref([])
+const manualTeams = ref([])
+const manualBanks = ref([])
+const manualAgents = ref([])
+const manualForm = ref({ merchant_id: null, team_id: null, bank_id: null, agent_id: null, name: '', amount: '' })
+
+const openManualDialog = async () => {
+  manualForm.value = { merchant_id: null, team_id: null, bank_id: null, agent_id: null, name: '', amount: '' }
+  manualBanks.value = []
+  manualAgents.value = []
+  showManualDialog.value = true
+  manualMetaLoading.value = true
+  try {
+    const res = await fetch('/api/deposits/manual/meta', { headers })
+    if (res.ok) {
+      const data = await res.json()
+      manualMerchants.value = data.merchants || []
+      manualTeams.value = data.teams || []
+      if (manualTeams.value.length === 1) manualForm.value.team_id = manualTeams.value[0].id
+    } else {
+      snackbar.error('Liste yüklenemedi.')
+    }
+  } catch {
+    snackbar.error('Sunucu hatası.')
+  } finally {
+    manualMetaLoading.value = false
+  }
+}
+
+watch(() => manualForm.value.team_id, async (teamId) => {
+  manualForm.value.bank_id = null
+  manualForm.value.agent_id = null
+  manualBanks.value = []
+  manualAgents.value = []
+  if (!teamId) return
+  manualTeamLoading.value = true
+  try {
+    const res = await fetch(`/api/deposits/manual/team/${teamId}`, { headers })
+    if (res.ok) {
+      const data = await res.json()
+      manualBanks.value = data.banks || []
+      manualAgents.value = data.agents || []
+    }
+  } catch {
+    snackbar.error('Banka/agent listesi yüklenemedi.')
+  } finally {
+    manualTeamLoading.value = false
+  }
+})
+
+const submitManual = async () => {
+  if (!manualForm.value.merchant_id) { snackbar.error('Merchant seçin.'); return }
+  if (!manualForm.value.team_id) { snackbar.error('Takım seçin.'); return }
+  if (!manualForm.value.name?.trim()) { snackbar.error('Müşteri adı girin.'); return }
+  if (!manualForm.value.amount || Number(manualForm.value.amount) <= 0) { snackbar.error('Geçerli bir tutar girin.'); return }
+  manualSaving.value = true
+  try {
+    const res = await fetch('/api/deposits/manual', {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        merchant_id: manualForm.value.merchant_id,
+        team_id: manualForm.value.team_id,
+        bank_id: manualForm.value.bank_id,
+        agent_id: manualForm.value.agent_id,
+        name: manualForm.value.name.trim(),
+        amount: Number(manualForm.value.amount),
+      }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showManualDialog.value = false
+      snackbar.success(data.message || 'Manuel yatırım eklendi.')
+      page.value = 1
+      fetchData()
+    } else {
+      snackbar.error(data.message || 'Eklenemedi.')
+    }
+  } catch {
+    snackbar.error('Sunucu hatası.')
+  } finally {
+    manualSaving.value = false
+  }
+}
+
 const formatMoney = val => '₺' + Number(val).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
 const formatDate = val => {
   if (!val) return '-'
@@ -166,7 +255,7 @@ const resetFilters = () => {
   filters.value = {
     id: '', status: 0, merchant: null, team: null, bank: null,
     name: '', player_id: '', order_id: '', u_id: '',
-    min_amount: '', max_amount: '', date_from: '', date_to: '',
+    min_amount: '', max_amount: '', date_from: '', date_to: '', added_type: 0,
   }
   page.value = 1
   fetchData()
@@ -233,6 +322,9 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
           </VCardTitle>
           <template #append>
             <div class="d-flex gap-2">
+              <VBtn v-if="!isMerchant" color="primary" prepend-icon="tabler-plus" @click="openManualDialog">
+                Manuel Yatırım
+              </VBtn>
               <VBtn color="info" variant="outlined" prepend-icon="tabler-filter" @click="showFilterDialog = true">
                 Filtrele
               </VBtn>
@@ -432,6 +524,19 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
           <VCol cols="12" md="6">
             <AppDateTimePicker v-model="filters.date_to" label="Bitiş" :config="dateConfig" density="compact" />
           </VCol>
+
+          <VCol cols="12" md="6">
+            <VSelect
+              v-model="filters.added_type"
+              :items="[
+                { title: 'Tümü', value: 0 },
+                { title: 'Otomatik', value: 1 },
+                { title: 'Manuel', value: 2 },
+              ]"
+              label="Kaynak"
+              density="compact"
+            />
+          </VCol>
         </VRow>
       </VCardText>
       <VCardActions>
@@ -485,6 +590,86 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
         <VBtn variant="text" @click="showExportDialog = false">İptal</VBtn>
         <VBtn color="success" :loading="exportLoading" prepend-icon="tabler-file-spreadsheet" @click="submitExport">
           Başlat
+        </VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
+
+  <!-- Manuel Yatırım Dialog -->
+  <VDialog v-model="showManualDialog" max-width="640">
+    <VCard :loading="manualMetaLoading">
+      <VCardItem>
+        <template #prepend>
+          <VAvatar color="primary" variant="tonal" rounded>
+            <VIcon icon="tabler-cash-banknote" />
+          </VAvatar>
+        </template>
+        <VCardTitle>Manuel Yatırım Ekle</VCardTitle>
+        <VCardSubtitle>Onaylanmış (status=3) olarak kaydedilir, callback gönderilmez</VCardSubtitle>
+        <template #append>
+          <VBtn icon size="small" variant="text" @click="showManualDialog = false">
+            <VIcon icon="tabler-x" />
+          </VBtn>
+        </template>
+      </VCardItem>
+      <VDivider />
+      <VCardText>
+        <VRow>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="manualForm.merchant_id"
+              :items="manualMerchants.map(m => ({ title: m.name, value: m.id }))"
+              label="Site (Merchant)"
+              prepend-inner-icon="tabler-building-store"
+              density="compact"
+            />
+          </VCol>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="manualForm.team_id"
+              :items="manualTeams.map(tm => ({ title: tm.name, value: tm.id }))"
+              label="Takım"
+              prepend-inner-icon="tabler-users-group"
+              density="compact"
+            />
+          </VCol>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="manualForm.bank_id"
+              :items="manualBanks.map(b => ({ title: b.name, value: b.id }))"
+              label="Banka Hesabı"
+              prepend-inner-icon="tabler-building-bank"
+              density="compact"
+              :disabled="!manualForm.team_id"
+              :loading="manualTeamLoading"
+              clearable
+            />
+          </VCol>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="manualForm.agent_id"
+              :items="manualAgents.map(a => ({ title: a.name, value: a.id }))"
+              label="Takım Agent"
+              prepend-inner-icon="tabler-user"
+              density="compact"
+              :disabled="!manualForm.team_id"
+              :loading="manualTeamLoading"
+              clearable
+            />
+          </VCol>
+          <VCol cols="12" md="6">
+            <AppTextField v-model="manualForm.name" label="Müşteri Adı" prepend-inner-icon="tabler-user" density="compact" />
+          </VCol>
+          <VCol cols="12" md="6">
+            <AppTextField v-model="manualForm.amount" type="number" label="Tutar" prefix="₺" density="compact" />
+          </VCol>
+        </VRow>
+      </VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="showManualDialog = false">İptal</VBtn>
+        <VBtn color="primary" prepend-icon="tabler-device-floppy" :loading="manualSaving" @click="submitManual">
+          Kaydet
         </VBtn>
       </VCardActions>
     </VCard>
