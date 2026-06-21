@@ -9,16 +9,31 @@ public interface ISystemSettingService
     Task SetAsync(string key, string? value, CancellationToken ct = default);
 }
 
-/// <summary>Telegram bildirim gönderimi (Faz 6'da tam entegrasyon).</summary>
+/// <summary>Telegram bot API entegrasyonu — bildirim gönderimi + webhook yardımcıları.</summary>
 public interface ITelegramService
 {
     Task<bool> SendAsync(string chatId, string markdownMessage, CancellationToken ct = default);
 
-    /// <summary>Mesaj gönder, message_id döndür (parse mode + opsiyonel inline keyboard).</summary>
-    Task<long?> SendReturnIdAsync(string chatId, string text, string parseMode = "HTML", object? replyMarkup = null, CancellationToken ct = default);
+    /// <summary>Mesaj gönder, message_id döndür (parse mode + opsiyonel inline keyboard + reply).</summary>
+    Task<long?> SendReturnIdAsync(string chatId, string text, string parseMode = "HTML", object? replyMarkup = null, long? replyToMessageId = null, CancellationToken ct = default);
+
+    /// <summary>Mesaj gönder (parse mode + opsiyonel reply); başarı durumu döner.</summary>
+    Task<bool> SendTextAsync(string chatId, string text, string parseMode = "HTML", long? replyToMessageId = null, CancellationToken ct = default);
 
     /// <summary>Var olan mesajın metnini ve inline keyboard'unu güncelle.</summary>
     Task<bool> EditMessageTextWithMarkupAsync(string chatId, long messageId, string text, string parseMode, object? replyMarkup, CancellationToken ct = default);
+
+    /// <summary>Mesaj metnini güncelle; inline keyboard kaldırılır.</summary>
+    Task<bool> EditMessageTextAsync(string chatId, long messageId, string text, string parseMode = "HTML", CancellationToken ct = default);
+
+    /// <summary>Inline button tıklamasına cevap (loading kapanır, opsiyonel toast).</summary>
+    Task<bool> AnswerCallbackQueryAsync(string callbackQueryId, string? text = null, bool showAlert = false, CancellationToken ct = default);
+
+    /// <summary>Telegram'dan dosya indir (getFile + indirme).</summary>
+    Task<TelegramFile?> DownloadFileAsync(string fileId, CancellationToken ct = default);
+
+    /// <summary>Webhook URL'sini Telegram'a kaydet (setWebhook).</summary>
+    Task<(bool Ok, string Message)> SetWebhookAsync(string url, string? secret, CancellationToken ct = default);
 
     /// <summary>MarkdownV2 özel karakter kaçışı.</summary>
     static string Escape(string text)
@@ -34,6 +49,9 @@ public interface ITelegramService
         return sb.ToString();
     }
 }
+
+/// <summary>Telegram'dan indirilen dosya.</summary>
+public record TelegramFile(byte[] Binary, long Size, string Ext);
 
 /// <summary>
 /// Merchant API & public pay için invest/blacklist veri erişimi (Dapper).

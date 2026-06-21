@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<ICallbackService, CallbackService>();
         services.AddScoped<ISystemSettingService, SystemSettingService>();
         services.AddScoped<ITelegramService, TelegramService>();
+        services.AddScoped<Application.Features.Telegram.ITelegramWebhookService, TelegramWebhookService>();
         services.AddScoped<IReceiptStorage, FileReceiptStorage>();
 
         // ---- Admin işlem yönetimi (Faz 3) ----

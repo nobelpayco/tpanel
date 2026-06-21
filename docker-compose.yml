@@ -38,6 +38,7 @@ services:
       # Opsiyonel — boş bırakılırsa Telegram/AI no-op çalışır:
       Telegram__BotToken: "${TELEGRAM_BOT_TOKEN:-}"
       Telegram__PayrouteChatId: "${TELEGRAM_PAYROUTE_CHAT_ID:-}"
+      Telegram__WebhookSecret: "${TELEGRAM_WEBHOOK_SECRET:-}"
     ports:
       - "8080:8080"
     volumes:

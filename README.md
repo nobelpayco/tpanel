@@ -299,7 +299,8 @@ sudo certbot --nginx -d nobelpay.me
 | `ConnectionStrings:MySql` | MySQL bağlantı dizesi |
 | `Frontend:PublicPath` | SPA static dosya kökü (`../../frontend/public`) |
 | `Storage:LocalDiskPath` / `PublicDiskPath` | Dekont/dosya depolama (repo kökü `storage/`) |
-| `Telegram:BotToken` / `PayrouteChatId` | Telegram bildirimleri (boşsa no-op) |
+| `Telegram:BotToken` / `PayrouteChatId` | Telegram bildirimleri (boşsa no-op). BotToken panelden de (`system_settings.telegram_bot_token`) okunur. |
+| `Telegram:WebhookSecret` | Webhook secret token (set-webhook ile Telegram'a kaydedilir) |
 
 > **Sırlar:** Prodüksiyon değerlerini (DB şifresi, Telegram/Anthropic token) `appsettings.json`'a yazıp commit etmeyin; ortam değişkeni veya `appsettings.*.local.json` kullanın (`.gitignore` ile dışlanır). Anthropic API key runtime'da `system_settings` tablosundan okunur.
 
@@ -315,9 +316,10 @@ sudo certbot --nginx -d nobelpay.me
 - **6 analitik rapor** — merchant/team/operations/conversion/player-risk/bank-account
 - **Arka plan işleri** — günlük kasa snapshot cron, süre dolan yatırım reddi, Telegram bildirimleri
 - **AI dekont doğrulama** — Claude Vision OCR + perceptual hash (dHash) + metadata analizi
+- **Telegram webhook** — `POST /api/telegram/webhook`: Chat ID kaydı (Chat ID Bul), risk butonları (Engelle/Vazgeç), `#fin` ile dekont yükleme, `@bot kasa` raporu. Kaydı `POST /api/system/telegram/set-webhook` (super admin) yapar.
 
 ### Kapsam dışı (manuel/ileride)
-Telegram inbound webhook (`TelegramWebhookController`), `telegram:set-webhook`, `ProvisionApiSecrets` ve test-data üretimi henüz port edilmedi (canlı bot / public URL gerektirir).
+`ProvisionApiSecrets` ve test-data üretimi henüz port edilmedi. Telegram webhook'unun canlı çalışması için public HTTPS URL + bot token gerekir.
 
 ---
 

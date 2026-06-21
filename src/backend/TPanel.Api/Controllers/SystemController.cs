@@ -24,6 +24,25 @@ public class SystemController : ControllerBase
         await job.RunAsync(body.Date, ct);
         return Ok(new { message = $"{body.Date} snapshot üretildi." });
     }
+
+    /// <summary>Telegram webhook'unu kaydet. body.url verilmezse App:Url + /api/telegram/webhook kullanılır.</summary>
+    [HttpPost("telegram/set-webhook")]
+    public async Task<IActionResult> SetTelegramWebhook([FromBody] SetWebhookBody? body, [FromServices] ITelegramService telegram, [FromServices] IConfiguration config, CancellationToken ct)
+    {
+        var u = await _cu.GetUserAsync(ct);
+        if (u is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!u.IsSuperAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
+
+        var url = !string.IsNullOrWhiteSpace(body?.Url)
+            ? body!.Url!
+            : (config["App:Url"]?.TrimEnd('/') + "/api/telegram/webhook");
+        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("https://"))
+            return StatusCode(422, new { message = "Geçerli bir HTTPS URL gerekli (Telegram webhook HTTPS ister)." });
+
+        var (ok, message) = await telegram.SetWebhookAsync(url, config["Telegram:WebhookSecret"], ct);
+        return StatusCode(ok ? 200 : 422, new { ok, message });
+    }
 }
 
 public record RunSnapshotBody([property: System.Text.Json.Serialization.JsonPropertyName("date")] string? Date);
+public record SetWebhookBody([property: System.Text.Json.Serialization.JsonPropertyName("url")] string? Url);
