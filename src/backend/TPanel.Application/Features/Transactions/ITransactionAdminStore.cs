@@ -35,6 +35,7 @@ public interface ITransactionAdminStore
     Task<IReadOnlyList<OptionRow>> GetTeamBankAccountsAsync(int teamId, CancellationToken ct = default);
     Task<IReadOnlyList<OptionRow>> GetTeamAgentsAsync(int teamId, CancellationToken ct = default);
     Task<int> CreateManualDepositAsync(int merchantId, int teamId, int? bankId, int? agentId, string name, double amount, int userId, string ip, CancellationToken ct = default);
+    Task<int> CreateManualWithdrawAsync(int merchantId, int teamId, int? bankId, int? agentId, string name, double amount, string iban, int userId, string ip, CancellationToken ct = default);
 
     // ---- Withdraw receipts ----
     Task<bool> HasReceiptAsync(int investId, CancellationToken ct = default);

@@ -200,6 +200,61 @@ public class WithdrawalsController : AdminControllerBase
         return Result(await _service.FlagFakeReceiptAsync(user!, id, rid, body?.Reason, ClientIp, ct));
     }
 
+    // ---- Manuel çekim ekleme ----
+    [HttpGet("manual/meta")]
+    public async Task<IActionResult> ManualMeta([FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var (user, err) = await AuthAsync(ct); if (err is not null) return err;
+        if (!user!.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+
+        var merchants = await store.GetActiveMerchantsAsync(ct);
+        var teams = await store.GetTeamsForFilterAsync(ct);
+        if (user.HasTeamScope) teams = teams.Where(t => t.Id == user.TeamId).ToList();
+
+        return Ok(new
+        {
+            merchants = merchants.Select(m => new { id = m.Id, name = m.Name }),
+            teams = teams.Select(t => new { id = t.Id, name = t.Name, status = t.Status }),
+        });
+    }
+
+    [HttpGet("manual/team/{teamId:int}")]
+    public async Task<IActionResult> ManualTeamMeta(int teamId, [FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var (user, err) = await AuthAsync(ct); if (err is not null) return err;
+        if (!user!.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+        if (user.HasTeamScope && teamId != user.TeamId) return StatusCode(403, new { message = "Yetkisiz." });
+
+        var banks = await store.GetTeamBankAccountsAsync(teamId, ct);
+        var agents = await store.GetTeamAgentsAsync(teamId, ct);
+        return Ok(new
+        {
+            banks = banks.Select(b => new { id = b.Id, name = b.Name }),
+            agents = agents.Select(a => new { id = a.Id, name = a.Name }),
+        });
+    }
+
+    [HttpPost("manual")]
+    public async Task<IActionResult> CreateManual([FromBody] ManualWithdrawBody body,
+        [FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var (user, err) = await AuthAsync(ct); if (err is not null) return err;
+        if (!user!.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+
+        if (body.MerchantId is null or <= 0) return BadRequest(new { message = "Merchant seçilmeli." });
+        var teamId = user.HasTeamScope ? user.TeamId : (body.TeamId ?? 0);
+        if (teamId <= 0) return BadRequest(new { message = "Takım seçilmeli." });
+        if (string.IsNullOrWhiteSpace(body.Name)) return BadRequest(new { message = "Müşteri adı girilmeli." });
+        if (body.Amount is null or <= 0) return BadRequest(new { message = "Geçerli bir tutar girilmeli." });
+        if (string.IsNullOrWhiteSpace(body.Iban)) return BadRequest(new { message = "IBAN girilmeli." });
+
+        var id = await store.CreateManualWithdrawAsync(
+            body.MerchantId.Value, teamId, body.BankId, body.AgentId,
+            body.Name!.Trim(), body.Amount.Value, body.Iban!.Trim(), user.Id, ClientIp, ct);
+
+        return Ok(new { id, message = "Manuel çekim eklendi." });
+    }
+
     private static string MimeFromExt(string ext) => ext switch
     {
         "jpg" => "image/jpeg", "png" => "image/png", "webp" => "image/webp", "pdf" => "application/pdf", _ => "application/octet-stream",

@@ -77,3 +77,12 @@ public record ManualDepositBody(
     [property: System.Text.Json.Serialization.JsonPropertyName("agent_id")] int? AgentId,
     [property: System.Text.Json.Serialization.JsonPropertyName("name")] string? Name,
     [property: System.Text.Json.Serialization.JsonPropertyName("amount")] double? Amount);
+
+public record ManualWithdrawBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("merchant_id")] int? MerchantId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("bank_id")] int? BankId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("agent_id")] int? AgentId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("name")] string? Name,
+    [property: System.Text.Json.Serialization.JsonPropertyName("amount")] double? Amount,
+    [property: System.Text.Json.Serialization.JsonPropertyName("iban")] string? Iban);

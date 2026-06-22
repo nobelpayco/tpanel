@@ -301,6 +301,47 @@ public class TransactionAdminStore : ITransactionAdminStore
         return id;
     }
 
+    public async Task<int> CreateManualWithdrawAsync(int merchantId, int teamId, int? bankId, int? agentId,
+        string name, double amount, string iban, int userId, string ip, CancellationToken ct = default)
+    {
+        using var conn = await _factory.CreateOpenConnectionAsync(ct);
+
+        // Merchant çekim komisyon oranı → panel komisyonu
+        var pct = await conn.ExecuteScalarAsync<double?>(
+            "SELECT withdrawCommission FROM merchantUser WHERE id = @m", new { m = merchantId }) ?? 0d;
+        var commAmount = Math.Round(amount * pct / 100d, 2);
+
+        var now = _clock.Now;
+        var orderId = "MANW" + now.ToString("yyMMddHHmmssfff");
+        var uId = Guid.NewGuid().ToString("N");
+
+        // type=2 çekim, status=3 onaylı(ödenmiş), added_type=2 manuel; callbackSended=1 → callback yok.
+        var sql = @"INSERT INTO invest
+            (type, status, name, amount, original_amount, u_id, callbackUrl,
+             panel_commissin_amount, payed_amount, panel_commission_percent, iban, api_id, firm_id, team_id, bank_id, agent_id,
+             player_id, order_id, added_type, created_at, form_at, process_date, finalize_date,
+             ibanSeen, callbackSended, isControled, isConverted, walletInvest, transaction_type, amountChanged)
+            VALUES
+            ('2','3',@name,@amount,@amount,@uId,'',
+             @comm,@amount,@pct,@iban,@mid,@mid,@team,@bank,@agent,
+             '',@order,'2',@now,@now,@now,@now,
+             1,1,1,0,0,1,0);
+            SELECT LAST_INSERT_ID();";
+
+        var id = await conn.ExecuteScalarAsync<int>(sql, new
+        {
+            name, amount, uId, comm = commAmount, pct, iban = iban.ToUpperInvariant(), mid = merchantId,
+            team = teamId, bank = bankId, agent = agentId, order = orderId, now,
+        });
+
+        await conn.ExecuteAsync(
+            @"INSERT INTO investLog (investID, userID, ip, status, createdAt, detail)
+              VALUES (@id, @uid, @ip, 3, @now, @detail)",
+            new { id, uid = userId, ip, now, detail = "Manuel çekim eklendi (onaylı)." });
+
+        return id;
+    }
+
     // ---------- RECEIPTS ----------
     public async Task<bool> HasReceiptAsync(int investId, CancellationToken ct = default)
     {
