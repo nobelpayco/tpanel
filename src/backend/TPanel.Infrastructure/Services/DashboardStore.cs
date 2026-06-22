@@ -221,14 +221,15 @@ public class DashboardStore : IDashboardStore
                 if (diff <= 7200) duration = diff;
             }
             int? trustRate = null; int trustCount = 0;
-            if ((int)tx.type == 1 && tx.player_id is not null)
+            var txType = int.Parse((string)tx.type);   // invest.type varchar → güvenli parse
+            if (txType == 1 && tx.player_id is not null)
             {
                 var statuses = (await c.QueryAsync<string>("SELECT status FROM invest WHERE player_id=@p AND type=1 AND status IN ('3','4') AND id<@id ORDER BY id DESC LIMIT 10", new { p = (string)tx.player_id, id = (int)tx.id })).ToList();
                 (trustRate, trustCount) = ComputeTrust(statuses);
             }
             var row = new Dictionary<string, object?>
             {
-                ["id"] = (int)tx.id, ["type"] = (int)tx.type, ["status"] = int.Parse((string)tx.status), ["name"] = (string?)tx.name,
+                ["id"] = (int)tx.id, ["type"] = txType, ["status"] = int.Parse((string)tx.status), ["name"] = (string?)tx.name,
                 ["player_id"] = (string?)tx.player_id, ["amount"] = tx.amount, ["team"] = (string?)tx.team_name ?? "-", ["bank"] = (string?)tx.bank_name ?? "-",
                 ["trust_rate"] = trustRate, ["trust_count"] = trustCount, ["duration"] = duration,
                 ["created_at_raw"] = ((DateTime?)tx.created_at)?.ToString("o"), ["date"] = ((DateTime?)tx.created_at)?.ToString("HH:mm dd.MM.yyyy") ?? "-",

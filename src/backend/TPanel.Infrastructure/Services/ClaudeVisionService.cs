@@ -73,12 +73,18 @@ public class ClaudeVisionService : IClaudeVisionService
         var systemPrompt = BuildSystemPrompt(today);
         var userText = $"Bu görüntüyü banka dekontu olarak analiz et. Beklenen değerler:\n- Tutar: {expected.Amount:0.00} TL\n- Alıcı IBAN son 4 hane: {expLast4}\n- Alıcı adı: {expected.RecipientName}\n\nBunlarla karşılaştırarak yukarıdaki JSON şemasına uygun cevap ver.";
 
+        // PDF, Anthropic "image" bloğunda kabul edilmez → "document" bloğu kullan.
+        // Görseller (jpg/png/webp) "image" bloğuyla gider.
+        object mediaBlock = mimeType == "application/pdf"
+            ? new { type = "document", source = new { type = "base64", media_type = "application/pdf", data = base64 } }
+            : new { type = "image", source = new { type = "base64", media_type = mimeType, data = base64 } };
+
         var payload = JsonSerializer.Serialize(new
         {
             model,
             max_tokens = 800,
             messages = new[] { new { role = "user", content = new object[] {
-                new { type = "image", source = new { type = "base64", media_type = mimeType, data = base64 } },
+                mediaBlock,
                 new { type = "text", text = userText } } } },
             system = systemPrompt,
         });
