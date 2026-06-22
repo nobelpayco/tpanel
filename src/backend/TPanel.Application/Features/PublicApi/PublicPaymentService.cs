@@ -77,10 +77,10 @@ public class PublicPaymentService : IPublicPaymentService
             }
         }
 
-        // Otomatik IBAN ata
+        // Otomatik IBAN ata (takım bazlı rotasyon — atama noktası)
         if (tx.IbanSeen == 0 && tx.Status is "0" or "1")
         {
-            var picked = await _banks.PickOneAsync(tx.Amount, tx.FirmId, ct: ct);
+            var picked = await _banks.PickForAssignmentAsync(tx.Amount, tx.FirmId, ct);
             if (picked is not null)
             {
                 await _store.UpdateAsync(uId, new Dictionary<string, object?>

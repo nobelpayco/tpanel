@@ -7,6 +7,15 @@ public interface IMerchantBankService
 {
     Task<IReadOnlyList<BankOption>> AvailableForAmountAsync(double amount, int merchantId, int? forcedTeamId = null, CancellationToken ct = default);
     Task<BankOption?> PickOneAsync(double amount, int merchantId, int? forcedTeamId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Yatırım ATAMA anında IBAN seçer. Mevcut filtreler (tutar/aktiflik/kuyruk/günlük limit/maxCase)
+    /// aynen uygulanır; uygun takımlar arasında dağıtım modu system_settings.deposit_distribution_mode ile:
+    /// "rotation" (varsayılan) → takım bazlı sıralı round-robin (kalıcı pointer), "priority" → eski sort_order davranışı.
+    /// Pointer'ı ilerlettiği için yalnızca gerçek atama noktalarında çağrılmalı (availability kontrolünde değil).
+    /// </summary>
+    Task<BankOption?> PickForAssignmentAsync(double amount, int merchantId, CancellationToken ct = default);
+
     Task<BankOption?> ValidateAsync(int bankId, double amount, int merchantId, CancellationToken ct = default);
 
     Task<IReadOnlyDictionary<int, double>> CurrentCashForTeamsAsync(IReadOnlyCollection<int> teamIds, CancellationToken ct = default);

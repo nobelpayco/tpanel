@@ -111,6 +111,43 @@ public class MerchantBankService : IMerchantBankService
     public async Task<BankOption?> ValidateAsync(int bankId, double amount, int merchantId, CancellationToken ct = default)
         => (await AvailableForAmountAsync(amount, merchantId, ct: ct)).FirstOrDefault(b => b.Id == bankId);
 
+    public async Task<BankOption?> PickForAssignmentAsync(double amount, int merchantId, CancellationToken ct = default)
+    {
+        // 1) FİLTRELER (tutar/aktiflik/kuyruk/günlük limit/maxCase) — aynen uygulanır.
+        var eligible = await AvailableForAmountAsync(amount, merchantId, ct: ct);
+        if (eligible.Count == 0) return null;
+
+        // 2) Dağıtım modu (varsayılan: rotation)
+        var mode = (await _settings.GetAsync("deposit_distribution_mode", ct)) ?? "rotation";
+        if (!string.Equals(mode, "rotation", StringComparison.OrdinalIgnoreCase))
+            return eligible[0];   // "priority" → eski davranış (sort_order önceliği)
+
+        // 3) Uygun takımları team_id'ye göre sırala — tek takım varsa rotasyona gerek yok
+        var teamsOrdered = eligible.Select(a => a.TeamId).Distinct().OrderBy(x => x).ToList();
+        if (teamsOrdered.Count == 1) return eligible[0];
+
+        // 4) Kalıcı pointer'ı atomik oku+ilerlet → last'tan sonraki UYGUN takım (döngüsel)
+        using var conn = await _factory.CreateOpenConnectionAsync(ct);
+        using var tx = conn.BeginTransaction();
+        var lastStr = await conn.ExecuteScalarAsync<string?>(
+            "SELECT `value` FROM system_settings WHERE `key` = 'deposit_rotation_last_team' FOR UPDATE",
+            transaction: tx);
+        var last = int.TryParse(lastStr, out var l) ? l : 0;
+
+        var next = teamsOrdered.FirstOrDefault(t => t > last);   // last'tan büyük ilk uygun takım
+        if (next == 0) next = teamsOrdered[0];                   // yoksa başa dön (en küçük team_id)
+
+        await conn.ExecuteAsync(
+            @"INSERT INTO system_settings (`key`, `value`, updated_at)
+              VALUES ('deposit_rotation_last_team', @v, @now)
+              ON DUPLICATE KEY UPDATE `value` = @v, updated_at = @now",
+            new { v = next.ToString(), now = _clock.Now }, tx);
+        tx.Commit();
+
+        // 5) Seçilen takımın (mevcut sıralamadaki ilk) uygun hesabını döndür
+        return eligible.First(a => a.TeamId == next);
+    }
+
     private static async Task<Dictionary<int, int>> TeamTodayCountAsync(System.Data.IDbConnection conn, List<int> teamIds, DateTime todayStart, DateTime tomorrow)
     {
         if (teamIds.Count == 0) return new();

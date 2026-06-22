@@ -96,7 +96,7 @@ public class DepositApiService : IDepositApiService
         if (await _store.HasRecentPendingForPlayerAsync(req.player_id!, _clock.Now.AddMinutes(-10), ct))
             return V1Result.Error(409, "You have a pending order. Please complete it or try again in 10 minutes.");
 
-        var bank = await _banks.PickOneAsync(amount, merchant.Id, ct: ct);
+        var bank = await _banks.PickForAssignmentAsync(amount, merchant.Id, ct);
         if (bank is null)
         {
             await _banks.AlertNoIbanAvailableAsync(merchant.Id, amount, null, req.player_id, req.order_id, req.name, ct);
