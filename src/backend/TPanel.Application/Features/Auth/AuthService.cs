@@ -147,6 +147,7 @@ public class AuthService : IAuthService
         role_label: user.RoleLabel,
         team_id: user.TeamId,
         firm_id: user.FirmId,
+        is_sys_admin: user.IsSysAdmin,
         permissions: new PermissionsPayload(
             manage_users: user.CanManageUsers,
             manage_teams: user.CanManageTeams,

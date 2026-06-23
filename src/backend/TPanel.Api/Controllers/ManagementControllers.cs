@@ -120,11 +120,21 @@ public class SettingsController : MgmtControllerBase
 {
     private readonly ISettingsMgmtService _s;
     public SettingsController(ISettingsMgmtService s, ICurrentUser cu) : base(cu) => _s = s;
-    [HttpGet] public async Task<IActionResult> Index(CancellationToken ct) => M(await _s.IndexAsync(ct));
-    [HttpPut] public async Task<IActionResult> Update([FromBody] SettingsUpdateBody b, CancellationToken ct) => M(await _s.UpdateAsync(b, ct));
-    [HttpGet("logs")] public async Task<IActionResult> Logs(CancellationToken ct) => M(await _s.LogsAsync(Q("direction"), Q("type"), Q("q"), Qi("page") ?? 1, ct));
-    [HttpGet("logs/{id:int}")] public async Task<IActionResult> LogDetail(int id, CancellationToken ct) => M(await _s.LogDetailAsync(id, ct));
-    [HttpPost("telegram/find-chat-id")] public async Task<IActionResult> FindChatId([FromBody] FindChatIdBody b, CancellationToken ct) => M(await _s.FindChatIdAsync(b.GroupName, ct));
+
+    // "Ayarlar" + "API & Callback Logları" uçları YALNIZCA Sistem Yöneticisi (is_sys_admin) — rol fark etmez.
+    private async Task<IActionResult?> GuardSysAdminAsync(CancellationToken ct)
+    {
+        var u = await CurrentUser.GetUserAsync(ct);
+        if (u is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!u.IsSysAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
+        return null;
+    }
+
+    [HttpGet] public async Task<IActionResult> Index(CancellationToken ct) => await GuardSysAdminAsync(ct) ?? M(await _s.IndexAsync(ct));
+    [HttpPut] public async Task<IActionResult> Update([FromBody] SettingsUpdateBody b, CancellationToken ct) => await GuardSysAdminAsync(ct) ?? M(await _s.UpdateAsync(b, ct));
+    [HttpGet("logs")] public async Task<IActionResult> Logs(CancellationToken ct) => await GuardSysAdminAsync(ct) ?? M(await _s.LogsAsync(Q("direction"), Q("type"), Q("q"), Qi("page") ?? 1, ct));
+    [HttpGet("logs/{id:int}")] public async Task<IActionResult> LogDetail(int id, CancellationToken ct) => await GuardSysAdminAsync(ct) ?? M(await _s.LogDetailAsync(id, ct));
+    [HttpPost("telegram/find-chat-id")] public async Task<IActionResult> FindChatId([FromBody] FindChatIdBody b, CancellationToken ct) => await GuardSysAdminAsync(ct) ?? M(await _s.FindChatIdAsync(b.GroupName, ct));
 
     // AI test uçları (Faz 6b — ClaudeVisionService)
     [HttpPost("anthropic/test")]
@@ -132,7 +142,7 @@ public class SettingsController : MgmtControllerBase
     {
         var u = await CurrentUser.GetUserAsync(ct);
         if (u is null) return Unauthorized(new { message = "Unauthenticated." });
-        if (!u.IsSuperAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
+        if (!u.IsSysAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
         var (ok, msg) = await vision.PingAsync(ct);
         return StatusCode(ok ? 200 : 422, new { ok, message = msg });
     }
@@ -142,7 +152,7 @@ public class SettingsController : MgmtControllerBase
     {
         var u = await CurrentUser.GetUserAsync(ct);
         if (u is null) return Unauthorized(new { message = "Unauthenticated." });
-        if (!u.CanApproveTransactions) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
+        if (!u.IsSysAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
         if (string.IsNullOrEmpty(b?.FileBase64) || string.IsNullOrEmpty(b.MimeType)) return StatusCode(422, new { message = "Dosya zorunludur." });
         var allowed = new[] { "application/pdf", "image/jpeg", "image/png", "image/webp" };
         if (!allowed.Contains(b.MimeType)) return StatusCode(422, new { message = "Geçersiz mime type." });

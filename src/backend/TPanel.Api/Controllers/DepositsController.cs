@@ -112,7 +112,7 @@ public class DepositsController : AdminControllerBase
     {
         var user = await LoadUserAsync(_currentUser, ct);
         if (user is null) return Unauthorized(new { message = "Unauthenticated." });
-        if (!user.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+        if (!user.IsAdmin) return StatusCode(403, new { message = "Yetkisiz." });
 
         var merchants = await store.GetActiveMerchantsAsync(ct);
         var teams = await store.GetTeamsForFilterAsync(ct);
@@ -130,7 +130,7 @@ public class DepositsController : AdminControllerBase
     {
         var user = await LoadUserAsync(_currentUser, ct);
         if (user is null) return Unauthorized(new { message = "Unauthenticated." });
-        if (!user.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+        if (!user.IsAdmin) return StatusCode(403, new { message = "Yetkisiz." });
         if (user.HasTeamScope && teamId != user.TeamId) return StatusCode(403, new { message = "Yetkisiz." });
 
         var banks = await store.GetTeamBankAccountsAsync(teamId, ct);
@@ -148,7 +148,7 @@ public class DepositsController : AdminControllerBase
     {
         var user = await LoadUserAsync(_currentUser, ct);
         if (user is null) return Unauthorized(new { message = "Unauthenticated." });
-        if (!user.CanApproveTransactions) return StatusCode(403, new { message = "Yetkisiz." });
+        if (!user.IsAdmin) return StatusCode(403, new { message = "Yetkisiz." });
 
         if (body.MerchantId is null or <= 0) return BadRequest(new { message = "Merchant seçilmeli." });
         var teamId = user.HasTeamScope ? user.TeamId : (body.TeamId ?? 0);

@@ -84,6 +84,13 @@ router.beforeEach((to, from, next) => {
       return next('/dashboard')
     }
   }
+  // Sistem Yöneticisi (is_sys_admin) kontrolü — Ayarlar + API/Callback Logları
+  if (to.meta?.sysAdmin) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.is_sys_admin) {
+      return next('/dashboard')
+    }
+  }
   next()
 })
 

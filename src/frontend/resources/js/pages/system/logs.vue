@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
 import { useSnackbar } from '@/composables/useSnackbar'
 
-definePage({ meta: { layout: 'default', roles: [1] } })
+definePage({ meta: { layout: 'default', sysAdmin: true } })
 
 const { t } = useI18n()
 const { headers } = useApi()

@@ -78,21 +78,22 @@ const allNav = [
   {
     title: 'nav.system',
     icon: { icon: 'tabler-settings' },
-    roles: [1, 4, 5],
+    // Grup görünürlüğü çocuklara bırakıldı (hepsi gizliyse grup da gizlenir).
     children: [
       { title: 'nav.users', to: { name: 'users' }, icon: { icon: 'tabler-user-cog' }, roles: [1, 5] },
-      { title: 'nav.settings', to: { name: 'settings' }, icon: { icon: 'tabler-settings' }, roles: [1] },
-      { title: 'nav.api_logs', to: { name: 'system-logs' }, icon: { icon: 'tabler-list-details' }, roles: [1] },
+      // Ayarlar + API/Callback Logları: yalnızca Sistem Yöneticisi (is_sys_admin)
+      { title: 'nav.settings', to: { name: 'settings' }, icon: { icon: 'tabler-settings' }, sysAdmin: true },
+      { title: 'nav.api_logs', to: { name: 'system-logs' }, icon: { icon: 'tabler-list-details' }, sysAdmin: true },
     ],
   },
 ]
 
-function filterNav(items, userType) {
+function filterNav(items, userType, isSysAdmin) {
   return items
-    .filter(item => !item.roles || item.roles.includes(userType))
+    .filter(item => (!item.roles || item.roles.includes(userType)) && (!item.sysAdmin || isSysAdmin))
     .map(item => {
       if (item.children) {
-        const filtered = filterNav(item.children, userType)
+        const filtered = filterNav(item.children, userType, isSysAdmin)
         if (filtered.length === 0) return null
         return { ...item, children: filtered }
       }
@@ -126,4 +127,4 @@ if (currentUser.user_type === 3 && currentUser.firm_id) {
   })
 }
 
-export default filterNav(allNav, currentUser.user_type)
+export default filterNav(allNav, currentUser.user_type, !!currentUser.is_sys_admin)

@@ -4978,7 +4978,8 @@ CREATE TABLE `users` (
   `merchant_group_id` int(10) UNSIGNED DEFAULT NULL,
   `auto_reload` int(11) NOT NULL DEFAULT 1,
   `auto_mode_change` int(11) NOT NULL DEFAULT 0,
-  `created_by` int(11) DEFAULT NULL
+  `created_by` int(11) DEFAULT NULL,
+  `is_sys_admin` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 --

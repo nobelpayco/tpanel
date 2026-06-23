@@ -203,7 +203,7 @@ public class UserMgmtService : IUserMgmtService
         if (!string.IsNullOrEmpty(b.Password)) fields["password"] = MgmtRandom.Md5(b.Password);
 
         var becameBlocked = false;
-        if (actor.IsAdmin && b.UserType is not null)
+        if ((actor.IsAdmin || actor.IsSysAdmin) && b.UserType is not null)
         {
             var newType = (UserType)b.UserType.Value;
             if (!actor.CanCreateUserType(newType)) return MgmtResult.Msg(403, "Bu kullanıcı tipine değiştirme yetkiniz yok.");

@@ -30,6 +30,9 @@ public class User
     public int AutoModeChange { get; set; }
     public int? CreatedBy { get; set; }
 
+    /// <summary>users.is_sys_admin — Sistem Yöneticisi: "Ayarlar" + "API & Callback Logları" erişimi ve SuperAdmin oluşturma/atama yetkisi. DB'den elle set edilir.</summary>
+    public bool IsSysAdmin { get; set; }
+
     // ---- Yardımcı (mapped değil) ----
     public UserType Role => (UserType)(UserTypeId ?? 0);
     public bool IsActive => Status == "1";
@@ -70,25 +73,34 @@ public class User
     public bool CanManageBankAccounts => Role is UserType.SuperAdmin or UserType.SubAdmin or UserType.TeamAdmin;
     public bool CanApproveTransactions => Role is UserType.SuperAdmin or UserType.SubAdmin or UserType.TeamAdmin or UserType.TeamAgent;
     public bool CanBlockUsers => IsAdmin;
-    public bool CanAccessSystemSettings => IsSuperAdmin;
+    public bool CanAccessSystemSettings => IsSysAdmin;
     public bool CanViewFinancialReports => Role is UserType.SuperAdmin or UserType.SubAdmin or UserType.TeamAdmin or UserType.Merchant;
     public bool CanViewPerformanceReports => Role is UserType.SuperAdmin or UserType.SubAdmin or UserType.TeamAdmin;
     public bool CanManageTeamAdmins => IsSuperAdmin || IsPrimaryTeamAdmin;
 
     /// <summary>Bu kullanıcının yaratabileceği user_type listesi.</summary>
-    public IReadOnlyList<UserType> CreatableUserTypes => Role switch
+    public IReadOnlyList<UserType> CreatableUserTypes
     {
-        UserType.SuperAdmin => new[] { UserType.SubAdmin, UserType.TeamAdmin, UserType.TeamAgent, UserType.Merchant },
-        UserType.SubAdmin => new[] { UserType.TeamAdmin, UserType.TeamAgent, UserType.Merchant },
-        UserType.TeamAdmin => new[] { UserType.TeamAgent },
-        _ => Array.Empty<UserType>(),
-    };
+        get
+        {
+            var list = Role switch
+            {
+                UserType.SuperAdmin => new List<UserType> { UserType.SubAdmin, UserType.TeamAdmin, UserType.TeamAgent, UserType.Merchant },
+                UserType.SubAdmin => new List<UserType> { UserType.TeamAdmin, UserType.TeamAgent, UserType.Merchant },
+                UserType.TeamAdmin => new List<UserType> { UserType.TeamAgent },
+                _ => new List<UserType>(),
+            };
+            // is_sys_admin: rolden bağımsız olarak SuperAdmin oluşturma/atama yetkisi
+            if (IsSysAdmin && !list.Contains(UserType.SuperAdmin)) list.Insert(0, UserType.SuperAdmin);
+            return list;
+        }
+    }
 
     public bool CanCreateUserType(UserType target) => CreatableUserTypes.Contains(target);
 
     public bool CanEditUser(User target)
     {
-        if (target.IsSuperAdmin) return false;
+        if (target.IsSuperAdmin) return IsSysAdmin;   // SuperAdmin'i yalnızca Sistem Yöneticisi düzenleyebilir
         if (IsSuperAdmin) return true;
         if (IsSubAdmin) return true;
         if (IsTeamAdmin && target.TeamId == TeamId)

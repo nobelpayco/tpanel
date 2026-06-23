@@ -4,7 +4,7 @@ import { useApi } from '@/composables/useApi'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { getBrand } from '@/composables/useBrand'
 
-definePage({ meta: { layout: 'default', roles: [1] } })
+definePage({ meta: { layout: 'default', sysAdmin: true } })
 
 const { t } = useI18n()
 const { headers } = useApi()
