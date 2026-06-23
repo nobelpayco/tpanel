@@ -13,16 +13,18 @@ public class SnapshotRow
 /// <summary>Genel para hareketi (fund storage / team payments listesi).</summary>
 public class MovementItem
 {
-    public string Id { get; set; } = "";
-    public string? Source { get; set; }
-    public string? Direction { get; set; }
-    public string? Target { get; set; }
-    public double Amount { get; set; }
-    public string? Description { get; set; }
-    public string? CreatedBy { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public double? BalanceBefore { get; set; }
-    public double? BalanceAfter { get; set; }
+    // Global JSON politikası PascalCase'i koruyor (PropertyNamingPolicy=null);
+    // frontend snake_case okuduğu için açıkça eşle (yoksa p.amount=undefined → NaN).
+    [JP("id")] public string Id { get; set; } = "";
+    [JP("source")] public string? Source { get; set; }
+    [JP("direction")] public string? Direction { get; set; }
+    [JP("target")] public string? Target { get; set; }
+    [JP("amount")] public double Amount { get; set; }
+    [JP("description")] public string? Description { get; set; }
+    [JP("created_by")] public string? CreatedBy { get; set; }
+    [JP("created_at")] public DateTime? CreatedAt { get; set; }
+    [JP("balance_before")] public double? BalanceBefore { get; set; }
+    [JP("balance_after")] public double? BalanceAfter { get; set; }
 }
 
 public class FundStorageRow
