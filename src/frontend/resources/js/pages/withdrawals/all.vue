@@ -62,6 +62,11 @@ const isMerchant = computed(() => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   return user.user_type == 3
 })
+// Manuel Çekim yalnızca Super Admin (1) ve Sub Admin (4)
+const canManualWithdraw = computed(() => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  return user.user_type == 1 || user.user_type == 4
+})
 
 const monthStart = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01` })()
 const showExportDialog = ref(false)
@@ -469,7 +474,7 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
           </VCardTitle>
           <template #append>
             <div class="d-flex gap-2">
-              <VBtn v-if="!isMerchant" color="primary" prepend-icon="tabler-plus" @click="openManualDialog">
+              <VBtn v-if="canManualWithdraw" color="primary" prepend-icon="tabler-plus" @click="openManualDialog">
                 Manuel Çekim
               </VBtn>
               <VBtn color="info" variant="outlined" prepend-icon="tabler-filter" @click="showFilterDialog = true">
