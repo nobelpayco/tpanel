@@ -153,7 +153,11 @@ public class DashboardStore : IDashboardStore
             }
             else
             {
-                var lastSnap = await c.ExecuteScalarAsync<double?>("SELECT amount FROM daily_case_snapshots WHERE entity_type=@et AND entity_id=@eid AND snapshot_date<@d ORDER BY snapshot_date DESC LIMIT 1", new { et, eid, d = to }) ?? gms.Sum(x => Convert.ToDouble(x.caseNow));
+                // gms List<dynamic> → LINQ Sum dynamic bağlanıp yanlış (int) overload'a düşüyor;
+                // tipli double döngüyle topla (RuntimeBinder "double→int" hatasını önler).
+                double caseNowSum = 0;
+                foreach (var gm0 in gms) caseNowSum += Convert.ToDouble(gm0.caseNow);
+                var lastSnap = await c.ExecuteScalarAsync<double?>("SELECT amount FROM daily_case_snapshots WHERE entity_type=@et AND entity_id=@eid AND snapshot_date<@d ORDER BY snapshot_date DESC LIMIT 1", new { et, eid, d = to }) ?? caseNowSum;
                 double deposits = 0, withdrawals = 0, netDep = 0, netWd = 0, pay = 0;
                 foreach (var gm in gms)
                 {
