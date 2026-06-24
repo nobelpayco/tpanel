@@ -4775,6 +4775,22 @@ CREATE TABLE `teamCredit` (
 -- --------------------------------------------------------
 
 --
+-- Tablo için tablo yapısı `team_merchant` (takım ↔ merchant atama)
+--
+
+CREATE TABLE `team_merchant` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `team_id` int(11) NOT NULL,
+  `merchant_id` int(11) NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_team_merchant` (`team_id`,`merchant_id`),
+  KEY `idx_tm_merchant` (`merchant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Tablo için tablo yapısı `teams`
 --
 

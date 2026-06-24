@@ -122,6 +122,10 @@ public class TransactionAdminStore : ITransactionAdminStore
             w.Append(@" AND (invest.status = '0'
                         OR (invest.status IN ('1','2') AND invest.team_id IS NULL)
                         OR (invest.status IN ('1','2') AND invest.team_id = @team))");
+            // Merchant→takım ataması: takıma merchant atanmışsa yalnızca o merchant'ların
+            // çekimleri (havuz dahil) görünür; atama yoksa hepsi (geriye dönük uyumlu).
+            w.Append(@" AND (NOT EXISTS (SELECT 1 FROM team_merchant tm WHERE tm.team_id = @team)
+                        OR invest.firm_id IN (SELECT tm.merchant_id FROM team_merchant tm WHERE tm.team_id = @team))");
         }
         else if (scope.Kind == ScopeKind.Merchant)
         {

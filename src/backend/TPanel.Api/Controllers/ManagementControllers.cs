@@ -27,6 +27,7 @@ public class TeamsController : MgmtControllerBase
     public TeamsController(ITeamMgmtService s, ICurrentUser cu) : base(cu) => _s = s;
     [HttpGet] public async Task<IActionResult> Index(CancellationToken ct) => M(await _s.IndexAsync(Q("status") ?? "1", Q("search"), ct));
     [HttpGet("{id:int}")] public async Task<IActionResult> Show(int id, CancellationToken ct) => M(await _s.ShowAsync(id, ct));
+    [HttpGet("{id:int}/merchants")] public async Task<IActionResult> Merchants(int id, CancellationToken ct) => M(await _s.MerchantsAsync(id, ct));
     [HttpPost] public async Task<IActionResult> Store([FromBody] TeamUpsertBody b, CancellationToken ct) { var (u, e) = await AuthAsync(ct); if (e is not null) return e; return M(await _s.StoreAsync(u!, b, ct)); }
     [HttpPut("{id:int}")] public async Task<IActionResult> Update(int id, [FromBody] TeamUpsertBody b, CancellationToken ct) { var (u, e) = await AuthAsync(ct); if (e is not null) return e; return M(await _s.UpdateAsync(u!, id, b, ct)); }
     [HttpDelete("{id:int}")] public async Task<IActionResult> Destroy(int id, CancellationToken ct) { var (u, e) = await AuthAsync(ct); if (e is not null) return e; return M(await _s.DestroyAsync(u!, id, ct)); }

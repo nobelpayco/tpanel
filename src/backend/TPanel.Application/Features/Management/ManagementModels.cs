@@ -30,7 +30,8 @@ public record TeamUpsertBody(
     [property: JP("telegram_pending_invest_enabled")] int? TelegramPendingInvestEnabled,
     [property: JP("telegram_missing_receipt_enabled")] int? TelegramMissingReceiptEnabled,
     [property: JP("telegram_withdraw_assigned_enabled")] int? TelegramWithdrawAssignedEnabled,
-    [property: JP("telegram_cash_report_enabled")] int? TelegramCashReportEnabled);
+    [property: JP("telegram_cash_report_enabled")] int? TelegramCashReportEnabled,
+    [property: JP("merchant_ids")] List<int>? MerchantIds);
 
 // ---- Merchant ----
 public record MerchantUpsertBody(

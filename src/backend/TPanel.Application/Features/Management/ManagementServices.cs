@@ -27,6 +27,7 @@ public interface ITeamMgmtService
     Task<MgmtResult> StoreAsync(User u, TeamUpsertBody b, CancellationToken ct = default);
     Task<MgmtResult> UpdateAsync(User u, int id, TeamUpsertBody b, CancellationToken ct = default);
     Task<MgmtResult> DestroyAsync(User u, int id, CancellationToken ct = default);
+    Task<MgmtResult> MerchantsAsync(int id, CancellationToken ct = default);
 }
 public class TeamMgmtService : ITeamMgmtService
 {
@@ -40,6 +41,8 @@ public class TeamMgmtService : ITeamMgmtService
     { if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); return await _s.UpdateTeamAsync(id, b, ct); }
     public async Task<MgmtResult> DestroyAsync(User u, int id, CancellationToken ct = default)
     { if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); await _s.DisableTeamAsync(id, ct); return MgmtResult.Msg(200, "Takım devre dışı bırakıldı."); }
+    public async Task<MgmtResult> MerchantsAsync(int id, CancellationToken ct = default)
+        => MgmtResult.Ok(new { merchant_ids = await _s.GetTeamMerchantsAsync(id, ct) });
 }
 
 // ---- Merchant ----

@@ -70,6 +70,7 @@ public class ManagementStore : IManagementStore
                 twae = en(b.TelegramWithdrawAssignedEnabled), twaea = en(b.TelegramWithdrawAssignedEnabled) == 1 ? NowStr : null,
                 tcre = en(b.TelegramCashReportEnabled), at = NowStr,
             });
+        if (b.MerchantIds is not null) await SetTeamMerchantsAsync(id, b.MerchantIds, ct);
         return MgmtResult.Ok(new { id, message = "Takım oluşturuldu." });
     }
 
@@ -118,6 +119,7 @@ public class ManagementStore : IManagementStore
 
         if (sets.Count > 0)
             await c.ExecuteAsync($"UPDATE teams SET {string.Join(",", sets)} WHERE id=@id", p);
+        if (b.MerchantIds is not null) await SetTeamMerchantsAsync(id, b.MerchantIds, ct);
         return MgmtResult.Msg(200, "Takım güncellendi.");
     }
 
@@ -125,6 +127,23 @@ public class ManagementStore : IManagementStore
     {
         using var c = await _factory.CreateOpenConnectionAsync(ct);
         await c.ExecuteAsync("UPDATE teams SET status=0 WHERE id=@id", new { id });
+    }
+
+    public async Task<IReadOnlyList<int>> GetTeamMerchantsAsync(int teamId, CancellationToken ct = default)
+    {
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        return (await c.QueryAsync<int>("SELECT merchant_id FROM team_merchant WHERE team_id=@t ORDER BY merchant_id", new { t = teamId })).ToList();
+    }
+
+    public async Task SetTeamMerchantsAsync(int teamId, IReadOnlyList<int> merchantIds, CancellationToken ct = default)
+    {
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        await c.ExecuteAsync("DELETE FROM team_merchant WHERE team_id=@t", new { t = teamId });
+        var ids = merchantIds.Distinct().Where(m => m > 0).ToList();
+        if (ids.Count == 0) return;
+        await c.ExecuteAsync(
+            "INSERT INTO team_merchant (team_id, merchant_id, created_at) VALUES (@t, @m, @now)",
+            ids.Select(m => new { t = teamId, m, now = NowStr }));
     }
 
     // ========== MERCHANT ==========

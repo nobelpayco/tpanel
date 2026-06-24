@@ -9,6 +9,8 @@ public interface IManagementStore
     Task<MgmtResult> CreateTeamAsync(TeamUpsertBody b, CancellationToken ct = default);
     Task<MgmtResult> UpdateTeamAsync(int id, TeamUpsertBody b, CancellationToken ct = default);
     Task DisableTeamAsync(int id, CancellationToken ct = default);
+    Task<IReadOnlyList<int>> GetTeamMerchantsAsync(int teamId, CancellationToken ct = default);
+    Task SetTeamMerchantsAsync(int teamId, IReadOnlyList<int> merchantIds, CancellationToken ct = default);
 
     // Merchant
     Task<object> MerchantsAsync(string statusFilter, CancellationToken ct = default);

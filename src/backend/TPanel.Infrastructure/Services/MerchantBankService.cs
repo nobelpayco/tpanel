@@ -53,14 +53,18 @@ public class MerchantBankService : IMerchantBankService
               AND (bankAccounts.max_amount = 0 OR bankAccounts.max_amount > (
                     SELECT COALESCE(SUM(amount), 0) FROM invest
                     WHERE invest.bank_id = bankAccounts.id AND invest.status IN ('1','2','3')
-                      AND invest.created_at >= @todayStart AND invest.created_at < @tomorrow))";
+                      AND invest.created_at >= @todayStart AND invest.created_at < @tomorrow))
+              -- Merchant→takım ataması: merchant'a takım atanmışsa YALNIZCA o takımlar;
+              -- hiç atama yoksa tüm takımlar (geriye dönük uyumlu).
+              AND (NOT EXISTS (SELECT 1 FROM team_merchant tm WHERE tm.merchant_id = @merchantId)
+                   OR bankAccounts.team_id IN (SELECT tm.team_id FROM team_merchant tm WHERE tm.merchant_id = @merchantId))";
 
         if (forcedTeamId is not null)
             sql += " AND bankAccounts.team_id = @forced";
 
         sql += " ORDER BY bankAccounts.sort_order, RAND()";
 
-        var rows = (await conn.QueryAsync(sql, new { amount, todayStart, tomorrow, forced = forcedTeamId })).ToList();
+        var rows = (await conn.QueryAsync(sql, new { amount, todayStart, tomorrow, forced = forcedTeamId, merchantId })).ToList();
 
         var accounts = rows.Select(r => new BankOption(
             (int)r.id, (string)r.account_holder, (string)r.account_iban,

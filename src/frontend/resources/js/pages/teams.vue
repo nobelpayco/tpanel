@@ -15,7 +15,7 @@ const search = ref('')
 const showAddDialog = ref(false)
 const showEditDialog = ref(false)
 
-const form = ref({ name: '', status: 1, min_invest: 0, max_invest: 0, wait_limit: 0, commission: 0, maxCase: 0, allow_duplicate_iban: 0, block_when_full: 1, telegram_enabled: 0, telegram_chat_id: '', telegram_withdraw_chat_id: '', telegram_reconciliation_chat_id: '', telegram_credit_low_enabled: 0, telegram_credit_low_threshold: null, telegram_pending_invest_enabled: 0, telegram_missing_receipt_enabled: 0, telegram_cash_report_enabled: 0 })
+const form = ref({ name: '', status: 1, min_invest: 0, max_invest: 0, wait_limit: 0, commission: 0, maxCase: 0, allow_duplicate_iban: 0, block_when_full: 1, telegram_enabled: 0, telegram_chat_id: '', telegram_withdraw_chat_id: '', telegram_reconciliation_chat_id: '', telegram_credit_low_enabled: 0, telegram_credit_low_threshold: null, telegram_pending_invest_enabled: 0, telegram_missing_receipt_enabled: 0, telegram_cash_report_enabled: 0, merchant_ids: [] })
 const editForm = ref({})
 
 const statusOptions = [
@@ -45,13 +45,20 @@ const fetchData = async () => {
   } finally { loading.value = false }
 }
 
-onMounted(fetchData)
+const merchants = ref([])
+const fetchMerchants = async () => {
+  const res = await fetch('/api/merchants?status=1', { headers })
+  if (res.ok) merchants.value = await res.json()
+}
+const merchantItems = computed(() => merchants.value.map(m => ({ title: m.name, value: m.id })))
+
+onMounted(() => { fetchData(); fetchMerchants() })
 
 const addTeam = async () => {
   const res = await fetch('/api/teams', { method: 'POST', headers, body: JSON.stringify(form.value) })
   if (res.ok) {
     showAddDialog.value = false
-    form.value = { name: '', status: 1, min_invest: 0, max_invest: 0, wait_limit: 0, commission: 0, maxCase: 0, allow_duplicate_iban: 0, block_when_full: 1, telegram_enabled: 0, telegram_chat_id: '', telegram_withdraw_chat_id: '', telegram_reconciliation_chat_id: '', telegram_credit_low_enabled: 0, telegram_credit_low_threshold: null, telegram_pending_invest_enabled: 0, telegram_missing_receipt_enabled: 0, telegram_cash_report_enabled: 0 }
+    form.value = { name: '', status: 1, min_invest: 0, max_invest: 0, wait_limit: 0, commission: 0, maxCase: 0, allow_duplicate_iban: 0, block_when_full: 1, telegram_enabled: 0, telegram_chat_id: '', telegram_withdraw_chat_id: '', telegram_reconciliation_chat_id: '', telegram_credit_low_enabled: 0, telegram_credit_low_threshold: null, telegram_pending_invest_enabled: 0, telegram_missing_receipt_enabled: 0, telegram_cash_report_enabled: 0, merchant_ids: [] }
     fetchData()
   } else {
     const data = await res.json()
@@ -59,9 +66,11 @@ const addTeam = async () => {
   }
 }
 
-const openEdit = (team) => {
-  editForm.value = { ...team }
+const openEdit = async (team) => {
+  editForm.value = { ...team, merchant_ids: [] }
   showEditDialog.value = true
+  const res = await fetch(`/api/teams/${team.id}/merchants`, { headers })
+  if (res.ok) editForm.value.merchant_ids = (await res.json()).merchant_ids || []
 }
 
 const updateTeam = async () => {
@@ -82,6 +91,7 @@ const updateTeam = async () => {
     telegram_pending_invest_enabled: Number(f.telegram_pending_invest_enabled) || 0,
     telegram_missing_receipt_enabled: Number(f.telegram_missing_receipt_enabled) || 0,
     telegram_cash_report_enabled: Number(f.telegram_cash_report_enabled) || 0,
+    merchant_ids: Array.isArray(f.merchant_ids) ? f.merchant_ids : [],
   }
   const res = await fetch(`/api/teams/${f.id}`, { method: 'PUT', headers, body: JSON.stringify(data) })
   const respData = await res.json().catch(() => ({}))
@@ -191,6 +201,17 @@ const deleteTeam = async (id) => {
               :items="[{title: t('status.active'), value: 1}, {title: t('status.inactive'), value: 2}, {title: t('banks.ready'), value: 3}]"
               :label="t('deposits.status')"
               density="comfortable"
+            />
+          </VCol>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="form.merchant_ids"
+              :items="merchantItems"
+              label="Atanan Merchant'lar"
+              multiple chips closable-chips clearable
+              density="comfortable"
+              hint="Boş bırakılırsa tüm takımlara açık (kısıt yok). Seçilirse bu merchant'ların işlemleri bu takıma yönlendirilir/görünür."
+              persistent-hint
             />
           </VCol>
         </VRow>
@@ -347,6 +368,18 @@ const deleteTeam = async (id) => {
               :items="[{title: t('status.active'), value: 1}, {title: t('status.inactive'), value: 2}, {title: t('banks.ready'), value: 3}, {title: t('banks.deleted'), value: 0}]"
               :label="t('deposits.status')"
               density="comfortable"
+            />
+          </VCol>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="editForm.merchant_ids"
+              :items="merchantItems"
+              label="Atanan Merchant'lar"
+              multiple chips closable-chips clearable
+              :readonly="!canManageTeams"
+              density="comfortable"
+              hint="Boş = tüm takımlara açık (kısıt yok). Seçili = bu merchant'ların işlemleri bu takıma yönlendirilir/görünür."
+              persistent-hint
             />
           </VCol>
         </VRow>
