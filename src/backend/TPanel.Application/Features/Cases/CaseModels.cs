@@ -29,15 +29,17 @@ public class MovementItem
 
 public class FundStorageRow
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public int Type { get; set; }
-    public string? WalletAddress { get; set; }
-    public decimal Balance { get; set; }
-    public int Status { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public double? ChainBalance { get; set; }
+    // PropertyNamingPolicy=null (PascalCase korunuyor); frontend snake_case okuyor
+    // (örn. merchant kasası "Depo Adı" select'i f.id/f.name → yoksa [object Object] + fund_storage_id nesne olarak gider).
+    [JP("id")] public int Id { get; set; }
+    [JP("name")] public string Name { get; set; } = "";
+    [JP("type")] public int Type { get; set; }
+    [JP("wallet_address")] public string? WalletAddress { get; set; }
+    [JP("balance")] public decimal Balance { get; set; }
+    [JP("status")] public int Status { get; set; }
+    [JP("created_at")] public DateTime? CreatedAt { get; set; }
+    [JP("updated_at")] public DateTime? UpdatedAt { get; set; }
+    [JP("chain_balance")] public double? ChainBalance { get; set; }
 }
 
 // ---- İstek gövdeleri (frontend snake_case) ----
