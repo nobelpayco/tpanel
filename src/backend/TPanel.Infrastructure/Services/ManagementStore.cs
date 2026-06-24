@@ -456,9 +456,10 @@ public class ManagementStore : IManagementStore
     public async Task<MgmtResult> CreateBlacklistAsync(BlacklistStoreBody b, CancellationToken ct = default)
     {
         using var c = await _factory.CreateOpenConnectionAsync(ct);
-        if (await c.ExecuteScalarAsync<int>("SELECT EXISTS(SELECT 1 FROM blacklist WHERE type=@t AND val=@v)", new { t = b.Type, v = b.Val }) == 1)
+        var val = (b.Val ?? "").Trim();   // isim/player_id baş-son boşluklarını temizle (eşleşme tutarlılığı)
+        if (await c.ExecuteScalarAsync<int>("SELECT EXISTS(SELECT 1 FROM blacklist WHERE type=@t AND val=@v)", new { t = b.Type, v = val }) == 1)
             return MgmtResult.Msg(422, "Bu kayıt zaten mevcut.");
-        await c.ExecuteAsync("INSERT INTO blacklist (type,val,`desc`) VALUES (@t,@v,@d)", new { t = b.Type, v = b.Val, d = b.Desc });
+        await c.ExecuteAsync("INSERT INTO blacklist (type,val,`desc`) VALUES (@t,@v,@d)", new { t = b.Type, v = val, d = b.Desc });
         return MgmtResult.Msg(200, "Kara listeye eklendi.");
     }
 

@@ -355,6 +355,7 @@
     "value": "Value",
     "description": "Description",
     "type_player": "Player ID",
+    "type_name": "Full Name",
     "search_placeholder": "Search player ID or description...",
     "confirm_delete": "Are you sure you want to delete this record?",
     "already_exists": "This record already exists"

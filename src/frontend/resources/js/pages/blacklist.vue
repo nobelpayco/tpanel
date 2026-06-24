@@ -20,7 +20,11 @@ const editItem = ref(null)
 
 const form = ref({ type: 1, val: '', desc: '' })
 
-const typeLabels = { 1: 'blacklist_page.type_player' }
+const typeLabels = { 1: 'blacklist_page.type_player', 2: 'blacklist_page.type_name' }
+const typeItems = computed(() => [
+  { title: t('blacklist_page.type_player'), value: 1 },
+  { title: t('blacklist_page.type_name'), value: 2 },
+])
 
 const fetchData = async () => {
   loading.value = true
@@ -154,14 +158,14 @@ onMounted(fetchData)
       <VCardText>
         <VSelect
           v-model="form.type"
-          :items="[{ title: t('blacklist_page.type_player'), value: 1 }]"
+          :items="typeItems"
           :label="t('blacklist_page.type')"
           class="mb-4"
         />
         <AppTextField
           v-model="form.val"
           :label="t('blacklist_page.value')"
-          :placeholder="t('blacklist_page.type_player')"
+          :placeholder="form.type === 2 ? t('blacklist_page.type_name') : t('blacklist_page.type_player')"
           class="mb-4"
         />
         <AppTextField

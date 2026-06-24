@@ -356,6 +356,7 @@
     "value": "Değer",
     "description": "Açıklama",
     "type_player": "Player ID",
+    "type_name": "Adı Soyadı",
     "search_placeholder": "Player ID veya açıklama ara...",
     "confirm_delete": "Bu kaydı silmek istediğinize emin misiniz?",
     "already_exists": "Bu kayıt zaten mevcut"

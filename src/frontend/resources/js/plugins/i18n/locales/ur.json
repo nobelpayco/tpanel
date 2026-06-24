@@ -353,6 +353,7 @@
     "value": "قدر",
     "description": "تفصیل",
     "type_player": "پلیئر آئی ڈی",
+    "type_name": "نام",
     "search_placeholder": "پلیئر آئی ڈی یا تفصیل تلاش کریں...",
     "confirm_delete": "کیا آپ واقعی اس ریکارڈ کو حذف کرنا چاہتے ہیں؟",
     "already_exists": "یہ ریکارڈ پہلے سے موجود ہے"

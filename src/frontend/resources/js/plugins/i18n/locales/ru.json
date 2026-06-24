@@ -352,6 +352,7 @@
     "value": "Значение",
     "description": "Описание",
     "type_player": "Player ID",
+    "type_name": "Имя Фамилия",
     "search_placeholder": "Поиск по ID или описанию...",
     "confirm_delete": "Вы уверены, что хотите удалить эту запись?",
     "already_exists": "Эта запись уже существует"

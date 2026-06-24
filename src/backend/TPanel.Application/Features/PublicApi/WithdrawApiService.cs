@@ -26,7 +26,7 @@ public class WithdrawApiService : IWithdrawApiService
 
         var amount = (double)req.amount.Value;
 
-        if (await _store.IsBlacklistedAsync(1, req.player_id!, ct))
+        if (await _store.IsBlacklistedAsync(1, req.player_id!, ct) || await _store.IsBlacklistedAsync(2, req.name!.Trim(), ct))
             return V1Result.Error(403, "Transaction not allowed (blacklist).");
 
         if (await _store.OrderIdExistsAsync(req.order_id!, ct))
