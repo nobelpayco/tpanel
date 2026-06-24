@@ -122,30 +122,52 @@ public class MerchantBankService : IMerchantBankService
         if (!string.Equals(mode, "rotation", StringComparison.OrdinalIgnoreCase))
             return eligible[0];   // "priority" → eski davranış (sort_order önceliği)
 
-        // 3) Uygun takımları team_id'ye göre sırala — tek takım varsa rotasyona gerek yok
-        var teamsOrdered = eligible.Select(a => a.TeamId).Distinct().OrderBy(x => x).ToList();
-        if (teamsOrdered.Count == 1) return eligible[0];
-
-        // 4) Kalıcı pointer'ı atomik oku+ilerlet → last'tan sonraki UYGUN takım (döngüsel)
+        // 3) conn aç (pointer + hesap-içi yük dağıtımı sayımı için)
         using var conn = await _factory.CreateOpenConnectionAsync(ct);
-        using var tx = conn.BeginTransaction();
-        var lastStr = await conn.ExecuteScalarAsync<string?>(
-            "SELECT `value` FROM system_settings WHERE `key` = 'deposit_rotation_last_team' FOR UPDATE",
-            transaction: tx);
-        var last = int.TryParse(lastStr, out var l) ? l : 0;
 
-        var next = teamsOrdered.FirstOrDefault(t => t > last);   // last'tan büyük ilk uygun takım
-        if (next == 0) next = teamsOrdered[0];                   // yoksa başa dön (en küçük team_id)
+        // 4) Sıradaki UYGUN takımı belirle (team_id sırasıyla, kalıcı pointer ile)
+        var teamsOrdered = eligible.Select(a => a.TeamId).Distinct().OrderBy(x => x).ToList();
+        int next;
+        if (teamsOrdered.Count == 1)
+        {
+            next = teamsOrdered[0];   // tek uygun takım — pointer'a gerek yok
+        }
+        else
+        {
+            using var tx = conn.BeginTransaction();
+            var lastStr = await conn.ExecuteScalarAsync<string?>(
+                "SELECT `value` FROM system_settings WHERE `key` = 'deposit_rotation_last_team' FOR UPDATE",
+                transaction: tx);
+            var last = int.TryParse(lastStr, out var l) ? l : 0;
 
-        await conn.ExecuteAsync(
-            @"INSERT INTO system_settings (`key`, `value`, updated_at)
-              VALUES ('deposit_rotation_last_team', @v, @now)
-              ON DUPLICATE KEY UPDATE `value` = @v, updated_at = @now",
-            new { v = next.ToString(), now = _clock.Now }, tx);
-        tx.Commit();
+            next = teamsOrdered.FirstOrDefault(t => t > last);   // last'tan büyük ilk uygun takım
+            if (next == 0) next = teamsOrdered[0];               // yoksa başa dön (en küçük team_id)
 
-        // 5) Seçilen takımın (mevcut sıralamadaki ilk) uygun hesabını döndür
-        return eligible.First(a => a.TeamId == next);
+            await conn.ExecuteAsync(
+                @"INSERT INTO system_settings (`key`, `value`, updated_at)
+                  VALUES ('deposit_rotation_last_team', @v, @now)
+                  ON DUPLICATE KEY UPDATE `value` = @v, updated_at = @now",
+                new { v = next.ToString(), now = _clock.Now }, tx);
+            tx.Commit();
+        }
+
+        // 5) Seçilen takımın uygun hesapları arasında, bugün EN AZ işlem almış IBAN'ı seç
+        //    (takımın birden fazla aktif hesabına da yük dağılsın; eşitlikte mevcut RAND sırası korunur).
+        var teamAccounts = eligible.Where(a => a.TeamId == next).ToList();
+        if (teamAccounts.Count <= 1) return teamAccounts.FirstOrDefault();
+
+        var bankCounts = await BankTodayCountAsync(conn, teamAccounts.Select(a => a.Id).ToList(), _clock.Today, _clock.Today.AddDays(1));
+        return teamAccounts.OrderBy(a => bankCounts.GetValueOrDefault(a.Id, 0)).First();
+    }
+
+    private static async Task<Dictionary<int, int>> BankTodayCountAsync(System.Data.IDbConnection conn, List<int> bankIds, DateTime todayStart, DateTime tomorrow)
+    {
+        if (bankIds.Count == 0) return new();
+        var rows = await conn.QueryAsync(
+            @"SELECT bank_id AS Id, COUNT(*) AS C FROM invest
+              WHERE bank_id IN @ids AND status IN ('1','2','3') AND created_at >= @todayStart AND created_at < @tomorrow
+              GROUP BY bank_id", new { ids = bankIds, todayStart, tomorrow });
+        return rows.ToDictionary(r => (int)r.Id, r => (int)(long)r.C);
     }
 
     private static async Task<Dictionary<int, int>> TeamTodayCountAsync(System.Data.IDbConnection conn, List<int> teamIds, DateTime todayStart, DateTime tomorrow)
