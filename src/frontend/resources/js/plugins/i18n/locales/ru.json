@@ -399,6 +399,7 @@
     "total_commission": "Общая комиссия",
     "delivery": "Доставка",
     "delivery_commission": "Комиссия за доставку",
+    "apply_commission": "Применить комиссию за платёж?",
     "no_payments": "За этот день выплаты не найдены.",
     "payment_history": "История платежей",
     "daily_net": "Дневной нетто",

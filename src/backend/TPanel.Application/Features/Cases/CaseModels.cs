@@ -75,7 +75,8 @@ public record MerchantPaymentBody(
     [property: JP("target_merchant_id")] int? TargetMerchantId,
     [property: JP("description")] string? Description,
     [property: JP("payment_date")] string? PaymentDate,
-    [property: JP("is_group")] bool? IsGroup);
+    [property: JP("is_group")] bool? IsGroup,
+    [property: JP("apply_commission")] bool? ApplyCommission);
 
 public record FundStorageBody(
     [property: JP("name")] string? Name,

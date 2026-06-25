@@ -402,6 +402,7 @@
     "total_commission": "Total Commission",
     "delivery": "Delivery",
     "delivery_commission": "Delivery Commission",
+    "apply_commission": "Apply payment commission?",
     "no_payments": "No payments found for this day.",
     "payment_history": "Payment History",
     "daily_net": "Daily Net",

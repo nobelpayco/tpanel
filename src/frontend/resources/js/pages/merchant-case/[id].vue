@@ -61,6 +61,7 @@ const paymentForm = ref({
   fund_storage_id: null,
   description: '',
   payment_date: today,
+  apply_commission: true,
 })
 
 // Gün sonu kasaları tarih filtresi
@@ -159,7 +160,7 @@ const addPayment = async () => {
   const data = await res.json()
   if (res.ok) {
     showPaymentDialog.value = false
-    paymentForm.value = { payment_type: 1, amount: 0, crypto_quantity: null, crypto_rate: null, paid_amount: 0, tx_link: '', fund_storage_id: null, description: '', payment_date: today }
+    paymentForm.value = { payment_type: 1, amount: 0, crypto_quantity: null, crypto_rate: null, paid_amount: 0, tx_link: '', fund_storage_id: null, description: '', payment_date: today, apply_commission: true }
     snackbar.success(data.message)
     fetchData()
     fetchAllPayments()
@@ -521,8 +522,18 @@ const isPaymentToday = (createdAt) => {
           density="compact"
         />
 
+        <!-- TL'de ödeme komisyonu aç/kapa (sitenin komisyonu varsa) -->
+        <VCheckbox
+          v-if="paymentForm.payment_type === 1 && merchant.deliveryCommission > 0"
+          v-model="paymentForm.apply_commission"
+          :label="t('merchant_case.apply_commission')"
+          density="compact"
+          hide-details
+          class="mt-3"
+        />
+
         <VAlert
-          v-if="merchant.deliveryCommission > 0 && paymentForm.amount > 0"
+          v-if="merchant.deliveryCommission > 0 && paymentForm.amount > 0 && (paymentForm.payment_type !== 1 || paymentForm.apply_commission)"
           type="info"
           variant="tonal"
           density="compact"

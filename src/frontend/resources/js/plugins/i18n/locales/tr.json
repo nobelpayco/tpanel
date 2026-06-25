@@ -403,6 +403,7 @@
     "total_commission": "Toplam Komisyon",
     "delivery": "Ödeme",
     "delivery_commission": "Ödeme Komisyonu",
+    "apply_commission": "Ödeme Komisyonu Uygulansın mı?",
     "no_payments": "Bu güne ait ödeme bulunmamaktadır.",
     "payment_history": "Ödeme Geçmişi",
     "daily_net": "Günlük Net",
