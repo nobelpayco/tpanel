@@ -16,6 +16,7 @@ public class TelegramWebhookService : ITelegramWebhookService
     private static readonly Regex FinTag = new(@"(?:^|\s)#f[iİı]n\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex WithdrawId = new(@"\bW\d+\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex KasaCmd = new(@"@\w+\s+kasa\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex IbanCmd = new(@"#iban\b[:\s]*([A-Za-z0-9 ]{15,40})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Callback = new(@"^(risk_block|risk_dismiss):(\d+)$", RegexOptions.Compiled);
     private static readonly string[] AllowedMime = { "image/jpeg", "image/png", "image/webp", "application/pdf" };
 
@@ -66,6 +67,11 @@ public class TelegramWebhookService : ITelegramWebhookService
         if (chatId is null || isBot || text == "") return;
 
         if (FinTag.IsMatch(text)) { await HandleFinTag(m, chatId.Value.ToString(), text, messageId, ct); return; }
+
+        // #iban <IBAN> — her grupta çalışır, aktif+pasif tüm hesaplarda sorgular (salt-okuma)
+        var ibanMatch = IbanCmd.Match(text);
+        if (ibanMatch.Success) { await HandleIbanCmd(chatId.Value.ToString(), ibanMatch.Groups[1].Value, messageId, ct); return; }
+
         if (!KasaCmd.IsMatch(text)) return;
 
         // "kasa" — yalnızca mutabakat chat'i + ilgili bayraklar açıksa
@@ -183,6 +189,30 @@ public class TelegramWebhookService : ITelegramWebhookService
             new { iid = (int)invest.id, st = invest.status, at = _clock.Now, detail = $"Dekont yüklendi (Telegram: @{sender} #fin)" });
 
         await _telegram.SendTextAsync(chatId, $"✅ Dekont yüklendi — <b>{Esc(orderId)}</b>", "HTML", messageId, ct);
+    }
+
+    private async Task HandleIbanCmd(string chatId, string ibanRaw, long? messageId, CancellationToken ct)
+    {
+        var iban = Regex.Replace(ibanRaw ?? "", @"\s", "").ToUpperInvariant();
+        if (iban.Length < 15) { await _telegram.SendTextAsync(chatId, "❓ Geçerli bir IBAN girin. Format: <code>#iban TR....</code>", "HTML", messageId, ct); return; }
+
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        // Aktif + pasif tüm kayıtlarda ara; aynı IBAN birden fazla kayıttaysa aktif olanı baz al (status DESC)
+        var acc = await c.QueryFirstOrDefaultAsync(
+            "SELECT id, status FROM bankAccounts WHERE REPLACE(UPPER(account_iban),' ','')=@iban ORDER BY status DESC LIMIT 1",
+            new { iban });
+
+        if (acc is null) { await _telegram.SendTextAsync(chatId, "❌ Böyle bir iban bulunmamaktadır.", "HTML", messageId, ct); return; }
+
+        if ((int)acc.status == 1) { await _telegram.SendTextAsync(chatId, "✅ Bu iban aktif.", "HTML", messageId, ct); return; }
+
+        // Pasif → en son işlem aldığı (onaylı yatırım) tarih
+        var lastTx = await c.ExecuteScalarAsync<DateTime?>(
+            "SELECT MAX(finalize_date) FROM invest WHERE bank_id=@id AND type='1' AND status='3'", new { id = (int)acc.id });
+        var msg = lastTx is null
+            ? "⛔ Bu iban pasif, henüz hiç işlem almamıştır."
+            : $"⛔ Bu iban pasif. En son <b>{lastTx:dd.MM.yyyy}</b> tarihinde işlem almıştır.";
+        await _telegram.SendTextAsync(chatId, msg, "HTML", messageId, ct);
     }
 
     private async Task<string> BuildCashReport(IDbConnection c, dynamic team)
