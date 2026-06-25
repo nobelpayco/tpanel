@@ -159,13 +159,29 @@ public class MerchantBankService : IMerchantBankService
             tx.Commit();
         }
 
-        // 5) Seçilen takımın uygun hesapları arasında, bugün EN AZ işlem almış IBAN'ı seç
-        //    (takımın birden fazla aktif hesabına da yük dağılsın; eşitlikte mevcut RAND sırası korunur).
-        var teamAccounts = eligible.Where(a => a.TeamId == next).ToList();
+        // 5) Seçilen takımın uygun hesapları arasında SIRAYLA (round-robin) IBAN seç —
+        //    takım başına kalıcı pointer; sona gelince başa döner. (Eski: "en az dolu" idi.)
+        var teamAccounts = eligible.Where(a => a.TeamId == next)
+            .OrderBy(a => a.SortOrder).ThenBy(a => a.Id).ToList();
         if (teamAccounts.Count <= 1) return teamAccounts.FirstOrDefault();
 
-        var bankCounts = await BankTodayCountAsync(conn, teamAccounts.Select(a => a.Id).ToList(), _clock.Today, _clock.Today.AddDays(1));
-        return teamAccounts.OrderBy(a => bankCounts.GetValueOrDefault(a.Id, 0)).First();
+        var bankKey = $"deposit_rotation_last_bank_{next}";
+        using var btx = conn.BeginTransaction();
+        var lastBankStr = await conn.ExecuteScalarAsync<string?>(
+            "SELECT `value` FROM system_settings WHERE `key` = @k FOR UPDATE", new { k = bankKey }, btx);
+        var lastBank = int.TryParse(lastBankStr, out var lb) ? lb : 0;
+
+        // Son seçilen hesabın sıradaki komşusu (bulunamazsa baştan)
+        var lastIdx = teamAccounts.FindIndex(a => a.Id == lastBank);
+        var pick = teamAccounts[(lastIdx + 1) % teamAccounts.Count];
+
+        await conn.ExecuteAsync(
+            @"INSERT INTO system_settings (`key`, `value`, updated_at)
+              VALUES (@k, @v, @now)
+              ON DUPLICATE KEY UPDATE `value` = @v, updated_at = @now",
+            new { k = bankKey, v = pick.Id.ToString(), now = _clock.Now }, btx);
+        btx.Commit();
+        return pick;
     }
 
     private static async Task<Dictionary<int, int>> BankTodayCountAsync(System.Data.IDbConnection conn, List<int> bankIds, DateTime todayStart, DateTime tomorrow)
