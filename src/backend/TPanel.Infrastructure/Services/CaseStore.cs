@@ -494,19 +494,24 @@ public partial class CaseStore : ICaseStore
         var merchant = await c.QueryFirstOrDefaultAsync("SELECT deliveryCommission FROM merchantUser WHERE id=@id", new { id = merchantId });
         if (merchant is null) return WriteResult.Err(404, "Merchant bulunamadı.");
         var deliveryRate = Convert.ToDouble(merchant.deliveryCommission);
-        double deliveryAmount = b.Amount > 0 ? Math.Round(b.Amount * deliveryRate / 100, 2) : 0;
+        // TL ödemede komisyon onay kutusu: işaretsizse komisyon uygulanmaz (tutar tam işlenir).
+        // Gönderilmezse (null) varsayılan: uygula (geriye dönük uyumlu). Kripto'yu etkilemez.
+        bool applyCommission = b.ApplyCommission ?? true;
+        double deliveryAmount = (b.Amount > 0 && applyCommission) ? Math.Round(b.Amount * deliveryRate / 100, 2) : 0;
+        double effectiveRate = applyCommission ? deliveryRate : 0;
         double? paidAmount = null, deliveryProfit = null;
         if (b.PaymentType == 2)
         {
             deliveryProfit = b.Amount > 0 ? Math.Round(b.Amount * deliveryRate / 100, 2) : 0;
             paidAmount = Math.Round(b.Amount - deliveryProfit.Value, 2);
             deliveryAmount = 0;
+            effectiveRate = deliveryRate;   // kripto: oran değişmez (toggle TL'ye özel)
         }
 
         await c.ExecuteAsync(@"INSERT INTO merchant_payments (merchant_id, payment_type, amount, paid_amount, delivery_profit, delivery_commission_rate, delivery_commission_amount, crypto_quantity, crypto_rate, tx_link, fund_storage_id, description, created_by, created_at)
             VALUES (@mid,@pt,@amt,@paid,@dp,@drate,@damt,@cq,@cr,@tx,@fs,@desc,@by,@at)",
             new { mid = merchantId, pt = b.PaymentType, amt = b.Amount, paid = paidAmount, dp = deliveryProfit,
-                drate = deliveryRate, damt = deliveryAmount,
+                drate = effectiveRate, damt = deliveryAmount,
                 cq = b.PaymentType == 2 ? b.CryptoQuantity : null, cr = b.PaymentType == 2 ? b.CryptoRate : null,
                 tx = b.PaymentType == 2 ? b.TxLink : null, fs = b.PaymentType == 2 ? b.FundStorageId : null,
                 desc = b.Description, by = actor.UserId, at = PaymentDate(b.PaymentDate) });
