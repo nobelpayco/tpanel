@@ -57,7 +57,11 @@ public class MerchantBankService : IMerchantBankService
               -- Merchant→takım ataması: merchant'a takım atanmışsa YALNIZCA o takımlar;
               -- hiç atama yoksa tüm takımlar (geriye dönük uyumlu).
               AND (NOT EXISTS (SELECT 1 FROM team_merchant tm WHERE tm.merchant_id = @merchantId)
-                   OR bankAccounts.team_id IN (SELECT tm.team_id FROM team_merchant tm WHERE tm.merchant_id = @merchantId))";
+                   OR bankAccounts.team_id IN (SELECT tm.team_id FROM team_merchant tm WHERE tm.merchant_id = @merchantId))
+              -- Takım→merchant ataması: takıma merchant atanmışsa YALNIZCA o merchant'lardan
+              -- yatırım alır; takıma hiç merchant atanmamışsa herkesten alır (geriye dönük uyumlu).
+              AND (NOT EXISTS (SELECT 1 FROM team_merchant tm WHERE tm.team_id = bankAccounts.team_id)
+                   OR @merchantId IN (SELECT tm.merchant_id FROM team_merchant tm WHERE tm.team_id = bankAccounts.team_id))";
 
         if (forcedTeamId is not null)
             sql += " AND bankAccounts.team_id = @forced";
