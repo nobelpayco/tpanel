@@ -104,7 +104,7 @@ const resetForm = () => {
   form.value = {
     name: '', username: '', password: '',
     user_type: allowedRoles.value[0]?.id ?? null,
-    team_id: null, firm_id: null, status: 1,
+    team_id: null, firm_id: null, status: 1, two_factor: false,
   }
   editingId.value = null
   showPass.value = false
@@ -125,6 +125,7 @@ const openEdit = (u) => {
     team_id: u.team_id || null,
     firm_id: u.firm_id || null,
     status: Number(u.status),
+    two_factor: u.two_factor === true,
   }
   showPass.value = false
   showFormDialog.value = true
@@ -353,6 +354,18 @@ onMounted(() => {
             />
             <div class="text-caption text-medium-emphasis mt-1">
               Şifre en az 6 karakter olmalı, en az bir harf ve bir rakam içermelidir.
+            </div>
+          </VCol>
+
+          <VCol cols="12">
+            <VSwitch
+              v-model="form.two_factor"
+              color="primary"
+              density="compact"
+              :label="`2FA (Google Authenticator) — ${form.two_factor ? 'Aktif' : 'Pasif'}`"
+            />
+            <div class="text-caption text-medium-emphasis mt-1">
+              Aktifse kullanıcı girişte Google Authenticator kodu ister (ilk girişte QR gösterilir). Pasife alınırsa mevcut 2FA kaydı silinir; tekrar açılırsa yeni QR kurulur.
             </div>
           </VCol>
 
