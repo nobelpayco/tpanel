@@ -128,7 +128,7 @@ public partial class CaseStore
     public async Task<object> IntermediaryPaymentsAsync(int id, string? date, string? from, string? to, CancellationToken ct = default)
     {
         using var c = await _factory.CreateOpenConnectionAsync(ct);
-        string dc = date is not null ? " AND DATE(created_at)=@date" : (from is not null && to is not null ? " AND DATE(created_at) BETWEEN @from AND @to" : "");
+        string dc = date is not null ? " AND DATE(ip.created_at)=@date" : (from is not null && to is not null ? " AND DATE(ip.created_at) BETWEEN @from AND @to" : "");
         var rows = await c.QueryAsync($@"SELECT ip.*, t.name AS team_name FROM intermediary_payments ip LEFT JOIN teams t ON ip.team_id=t.id
             WHERE ip.intermediary_id=@id{dc} ORDER BY ip.created_at DESC LIMIT 200", new { id, date, from, to });
         var list = rows.Select(p => (object)new

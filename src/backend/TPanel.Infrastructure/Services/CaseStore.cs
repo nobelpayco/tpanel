@@ -443,7 +443,7 @@ public partial class CaseStore : ICaseStore
     public async Task<object> MerchantPaymentsAsync(int merchantId, bool isGroup, string? date, string? from, string? to, CancellationToken ct = default)
     {
         using var c = await _factory.CreateOpenConnectionAsync(ct);
-        string dc = date is not null ? " AND DATE(created_at)=@date" : (from is not null && to is not null ? " AND DATE(created_at) BETWEEN @from AND @to" : "");
+        string dc = date is not null ? " AND DATE(mp.created_at)=@date" : (from is not null && to is not null ? " AND DATE(mp.created_at) BETWEEN @from AND @to" : "");
         List<int> ids;
         if (isGroup) ids = (await c.QueryAsync<int>("SELECT id FROM merchantUser WHERE group_id=@id", new { id = merchantId })).ToList();
         else ids = new List<int> { merchantId };
