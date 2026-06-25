@@ -1,10 +1,14 @@
+using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
+
 namespace TPanel.Application.Features.Auth;
 
 // ---- İstekler ----
 // Alanlar nullable: boş gövdede ASP.NET otomatik 400 yerine servis 422 (Laravel ile uyumlu) dönsün.
+// JSON snake_case alan adları: global PropertyNamingPolicy=null (PascalCase) olduğundan
+// alt çizgili alanlar ([JP]) olmadan bind olmaz (temp_token, current_password vb.).
 public record LoginRequest(string? Username, string? Password);
-public record TwoFactorRequest(string? TempToken, string? Code);
-public record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+public record TwoFactorRequest([property: JP("temp_token")] string? TempToken, [property: JP("code")] string? Code);
+public record ChangePasswordRequest([property: JP("current_password")] string? CurrentPassword, [property: JP("new_password")] string? NewPassword);
 
 // ---- Sonuç sarmalayıcı ----
 public enum AuthOutcome { Success, TwoFactorRequired, InvalidCredentials, AccountBlocked, Invalid, ValidationError }
