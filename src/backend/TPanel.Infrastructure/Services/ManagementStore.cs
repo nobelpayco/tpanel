@@ -375,13 +375,14 @@ public class ManagementStore : IManagementStore
         if (!string.IsNullOrEmpty(status) && status != "all") { w += " AND users.status=@st"; p.Add("st", status); }
         if (!string.IsNullOrEmpty(search)) { w += " AND (users.name LIKE @q OR users.username LIKE @q)"; p.Add("q", "%" + search + "%"); }
         var rows = await c.QueryAsync($@"SELECT users.id, users.name, users.username, users.user_type, users.status, users.team_id, users.firm_id,
-            users.created_at, users.created_by, users.last_login, teams.name AS team_name, merchantUser.name AS merchant_name
+            users.otp_ok, users.created_at, users.created_by, users.last_login, teams.name AS team_name, merchantUser.name AS merchant_name
             FROM users LEFT JOIN teams ON users.team_id=teams.id LEFT JOIN merchantUser ON users.firm_id=merchantUser.id
             {w} ORDER BY users.id DESC LIMIT 500", p);
         return rows.Select(u => (object)new
         {
             id = (int)u.id, name = (string)u.name, username = (string)u.username, user_type = (int?)u.user_type, status = (string)u.status,
-            team_id = (int)u.team_id, firm_id = (int?)u.firm_id, created_at = u.created_at, created_by = (int?)u.created_by, last_login = u.last_login,
+            team_id = (int)u.team_id, firm_id = (int?)u.firm_id, two_factor = (string?)u.otp_ok == "1",
+            created_at = u.created_at, created_by = (int?)u.created_by, last_login = u.last_login,
             team_name = (string?)u.team_name, merchant_name = (string?)u.merchant_name, role_label = RoleLabel((int?)u.user_type),
         });
     }
@@ -416,12 +417,12 @@ public class ManagementStore : IManagementStore
     public async Task<bool> MerchantExistsAsync(int id, CancellationToken ct = default)
     { using var c = await _factory.CreateOpenConnectionAsync(ct); return await c.ExecuteScalarAsync<int>("SELECT EXISTS(SELECT 1 FROM merchantUser WHERE id=@id)", new { id }) == 1; }
 
-    public async Task<int> CreateUserAsync(string name, string username, string md5Password, int userType, int teamId, int? firmId, int status, int createdBy, CancellationToken ct = default)
+    public async Task<int> CreateUserAsync(string name, string username, string md5Password, int userType, int teamId, int? firmId, int status, int otpOk, int createdBy, CancellationToken ct = default)
     {
         using var c = await _factory.CreateOpenConnectionAsync(ct);
         return await c.ExecuteScalarAsync<int>(@"INSERT INTO users (name,username,password,user_type,team_id,firm_id,merchant_group_id,status,otp_ok,otp_code,created_by,created_at)
-            VALUES (@name,@username,@pw,@ut,@team,@firm,NULL,@status,'0','',@by,@at); SELECT LAST_INSERT_ID();",
-            new { name, username, pw = md5Password, ut = userType, team = teamId, firm = firmId, status = status.ToString(), by = createdBy, at = NowStr });
+            VALUES (@name,@username,@pw,@ut,@team,@firm,NULL,@status,@otp,'',@by,@at); SELECT LAST_INSERT_ID();",
+            new { name, username, pw = md5Password, ut = userType, team = teamId, firm = firmId, status = status.ToString(), otp = otpOk == 1 ? "1" : "0", by = createdBy, at = NowStr });
     }
 
     public async Task UpdateUserAsync(int id, IDictionary<string, object?> fields, bool killTokens, CancellationToken ct = default)
