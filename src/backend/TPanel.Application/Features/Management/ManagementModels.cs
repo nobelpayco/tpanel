@@ -78,7 +78,8 @@ public record UserCreateBody(
     [property: JP("user_type")] int? UserType,
     [property: JP("team_id")] int? TeamId,
     [property: JP("firm_id")] int? FirmId,
-    [property: JP("status")] int? Status);
+    [property: JP("status")] int? Status,
+    [property: JP("two_factor")] bool? TwoFactor);
 
 public record UserUpdateBody(
     [property: JP("name")] string? Name,
@@ -87,7 +88,8 @@ public record UserUpdateBody(
     [property: JP("status")] int? Status,
     [property: JP("user_type")] int? UserType,
     [property: JP("team_id")] int? TeamId,
-    [property: JP("firm_id")] int? FirmId);
+    [property: JP("firm_id")] int? FirmId,
+    [property: JP("two_factor")] bool? TwoFactor);
 
 // ---- Blacklist ----
 public record BlacklistStoreBody([property: JP("type")] int Type, [property: JP("val")] string? Val, [property: JP("desc")] string? Desc);

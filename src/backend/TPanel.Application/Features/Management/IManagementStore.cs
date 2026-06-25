@@ -46,7 +46,7 @@ public interface IManagementStore
     Task<bool> UsernameExistsAsync(string username, int? exceptId, CancellationToken ct = default);
     Task<bool> TeamExistsAsync(int id, CancellationToken ct = default);
     Task<bool> MerchantExistsAsync(int id, CancellationToken ct = default);
-    Task<int> CreateUserAsync(string name, string username, string md5Password, int userType, int teamId, int? firmId, int status, int createdBy, CancellationToken ct = default);
+    Task<int> CreateUserAsync(string name, string username, string md5Password, int userType, int teamId, int? firmId, int status, int otpOk, int createdBy, CancellationToken ct = default);
     Task UpdateUserAsync(int id, IDictionary<string, object?> fields, bool killTokens, CancellationToken ct = default);
     Task DisableUserAsync(int id, CancellationToken ct = default);
 

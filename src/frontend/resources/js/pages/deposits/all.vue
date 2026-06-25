@@ -208,6 +208,15 @@ const formatDate = val => {
   return d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 }
 const formatIban = iban => iban ? iban.replace(/(.{4})/g, '$1 ').trim() : '-'
+// Banka kısa adı: yasal ekleri (A.Ş./T.A.Ş./T.A.O.) ve baştaki "Türkiye[ Cumhuriyeti]" kısmını at
+const shortBank = (name) => {
+  if (!name) return ''
+  return name
+    .replace(/\s*(T\.A\.Ş\.|A\.Ş\.|T\.A\.O\.|A\.O\.)\s*$/i, '')
+    .replace(/^Türkiye Cumhuriyeti\s+/i, '')
+    .replace(/^Türkiye\s+/i, '')
+    .trim()
+}
 
 const statusLabels = { 1: 'Bekleyen', 2: 'İşlemde', 3: 'Onaylandı', 4: 'Reddedildi' }
 const statusColors = { 1: 'warning', 2: 'info', 3: 'success', 4: 'error' }
@@ -384,6 +393,7 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
               <td>
                 <div class="text-body-2">{{ d.account_holder || '-' }}</div>
                 <div v-if="d.account_iban" class="text-caption text-medium-emphasis">{{ formatIban(d.account_iban) }}</div>
+                <div v-if="d.bank_name" class="text-caption text-disabled">{{ shortBank(d.bank_name) }}</div>
               </td>
               <td class="text-end">
                 <div class="font-weight-bold">{{ formatMoney(d.amount) }}</div>

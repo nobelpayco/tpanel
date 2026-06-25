@@ -37,7 +37,7 @@ public class DepositApiService : IDepositApiService
         var amountError = CheckAmount(merchant, amount);
         if (amountError is not null) return amountError;
 
-        if (await _store.IsBlacklistedAsync(1, req.player_id!, ct))
+        if (await _store.IsBlacklistedAsync(1, req.player_id!, ct) || await _store.IsBlacklistedAsync(2, req.name!.Trim(), ct))
             return V1Result.Error(403, "Transaction not allowed (blacklist).");
 
         if (await _store.OrderIdExistsAsync(req.order_id!, ct))
@@ -87,7 +87,7 @@ public class DepositApiService : IDepositApiService
         var amountError = CheckAmount(merchant, amount);
         if (amountError is not null) return amountError;
 
-        if (await _store.IsBlacklistedAsync(1, req.player_id!, ct))
+        if (await _store.IsBlacklistedAsync(1, req.player_id!, ct) || await _store.IsBlacklistedAsync(2, req.name!.Trim(), ct))
             return V1Result.Error(403, "Transaction not allowed (blacklist).");
 
         if (await _store.OrderIdExistsAsync(req.order_id!, ct))

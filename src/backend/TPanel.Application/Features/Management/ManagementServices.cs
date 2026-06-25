@@ -187,7 +187,7 @@ public class UserMgmtService : IUserMgmtService
         else if (targetType == UserType.Merchant)
         { if (b.FirmId is null) return MgmtResult.Msg(422, "Merchant seçimi zorunludur."); firmId = b.FirmId.Value; if (!await _s.MerchantExistsAsync(firmId.Value, ct)) return MgmtResult.Msg(422, "Merchant bulunamadı."); }
 
-        var id = await _s.CreateUserAsync(b.Name, b.Username, MgmtRandom.Md5(b.Password), (int)targetType, teamId, firmId, b.Status.Value, u.Id, ct);
+        var id = await _s.CreateUserAsync(b.Name, b.Username, MgmtRandom.Md5(b.Password), (int)targetType, teamId, firmId, b.Status.Value, b.TwoFactor == true ? 1 : 0, u.Id, ct);
         return MgmtResult.Ok(new { message = "Kullanıcı eklendi.", id });
     }
 
@@ -216,7 +216,18 @@ public class UserMgmtService : IUserMgmtService
             else { fields["team_id"] = 0; fields["firm_id"] = null; }
             becameBlocked = newType == UserType.Blocked;
         }
-        var killTokens = b.Status.Value == 0 || becameBlocked;
+
+        // 2FA aç/kapa (gönderildiyse). Kapatınca secret'i sil → tekrar açılınca yeni QR kurulur.
+        var twoFactorChanged = false;
+        if (b.TwoFactor is not null)
+        {
+            var twoFactorOn = b.TwoFactor.Value;
+            twoFactorChanged = twoFactorOn != (target.OtpOk == "1");
+            fields["otp_ok"] = twoFactorOn ? "1" : "0";
+            if (!twoFactorOn) fields["otp_code"] = "";
+        }
+
+        var killTokens = b.Status.Value == 0 || becameBlocked || twoFactorChanged;
         await _s.UpdateUserAsync(id, fields, killTokens, ct);
         return MgmtResult.Msg(200, "Kullanıcı güncellendi.");
     }
