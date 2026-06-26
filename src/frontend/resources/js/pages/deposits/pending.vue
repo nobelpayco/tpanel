@@ -246,6 +246,50 @@ const quickReject = async (d, rejectType = 1) => {
   if (res.ok) { snackbar.success(data.message); fetchData() }
   else { snackbar.handleError(data) }
 }
+
+// ---- Bekleyen yatırımı başka takıma taşı (yalnızca Super/Sub Admin) ----
+const showMoveDialog = ref(false)
+const moveForm = ref({ id: null, order_id: '', team_id: null, bank_id: null })
+const moveTeams = ref([])
+const moveBanks = ref([])
+const moveTeamLoading = ref(false)
+const moveSaving = ref(false)
+
+const openMoveDialog = async (d) => {
+  moveForm.value = { id: d.id, order_id: d.order_id, team_id: null, bank_id: null }
+  moveTeams.value = []; moveBanks.value = []
+  showMoveDialog.value = true
+  try {
+    const res = await fetch('/api/deposits/manual/meta', { headers })
+    if (res.ok) { const data = await res.json(); moveTeams.value = data.teams || [] }
+    else snackbar.error('Takım listesi yüklenemedi.')
+  } catch { snackbar.error('Sunucu hatası.') }
+}
+
+watch(() => moveForm.value.team_id, async (teamId) => {
+  moveForm.value.bank_id = null; moveBanks.value = []
+  if (!teamId) return
+  moveTeamLoading.value = true
+  try {
+    const res = await fetch(`/api/deposits/manual/team/${teamId}`, { headers })
+    if (res.ok) { const data = await res.json(); moveBanks.value = data.banks || [] }
+  } finally { moveTeamLoading.value = false }
+})
+
+const submitMove = async () => {
+  if (!moveForm.value.team_id) { snackbar.error('Hedef takım seçin.'); return }
+  if (!moveForm.value.bank_id) { snackbar.error('IBAN (banka hesabı) seçin.'); return }
+  moveSaving.value = true
+  try {
+    const res = await fetch(`/api/deposits/${moveForm.value.id}/move-team`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ team_id: moveForm.value.team_id, bank_id: moveForm.value.bank_id }),
+    })
+    const data = await res.json()
+    if (res.ok) { showMoveDialog.value = false; snackbar.success(data.message || 'Yatırım taşındı.'); fetchData() }
+    else { snackbar.error(data.message || 'Taşınamadı.') }
+  } catch { snackbar.error('Sunucu hatası.') } finally { moveSaving.value = false }
+}
 </script>
 
 <template>
@@ -350,6 +394,9 @@ const quickReject = async (d, rejectType = 1) => {
                 <div v-if="d.status === 1 || d.status === 2" class="d-flex gap-1 justify-end py-1">
                   <VBtn color="success" size="small" variant="flat" min-width="80" density="comfortable" @click="quickApprove(d)">Onayla</VBtn>
                   <VBtn color="error" size="small" variant="flat" min-width="80" density="comfortable" @click="quickReject(d, 1)">Reddet</VBtn>
+                  <VBtn v-if="isAdmin && d.status === 1" icon size="small" variant="text" color="warning" title="Başka takıma taşı" @click="openMoveDialog(d)">
+                    <VIcon icon="tabler-arrows-exchange-2" size="18" />
+                  </VBtn>
                 </div>
               </td>
             </tr>
@@ -555,6 +602,51 @@ const quickReject = async (d, rejectType = 1) => {
         <VSpacer />
         <VBtn variant="text" :disabled="approving" @click="showApproveDialog = false">{{ t('common.cancel') }}</VBtn>
         <VBtn color="success" :loading="approving" @click="confirmApprove">Onayla</VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
+
+  <!-- Başka Takıma Taşı (Bekleyen yatırım) -->
+  <VDialog v-model="showMoveDialog" max-width="520">
+    <VCard>
+      <VCardItem>
+        <VCardTitle>Başka Takıma Taşı</VCardTitle>
+        <template #append>
+          <VBtn icon size="small" variant="text" @click="showMoveDialog = false"><VIcon icon="tabler-x" /></VBtn>
+        </template>
+      </VCardItem>
+      <VDivider />
+      <VCardText>
+        <div class="text-body-2 text-medium-emphasis mb-4">
+          İşlem: <strong>{{ moveForm.order_id }}</strong> (#{{ moveForm.id }}) — yalnızca <strong>bekleyen</strong> yatırımlar taşınır. Yatırım seçilen takıma ve o takımın IBAN'ına aktarılır.
+        </div>
+        <VRow>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="moveForm.team_id"
+              :items="moveTeams.map(t => ({ title: t.name, value: t.id }))"
+              label="Hedef Takım"
+              prepend-inner-icon="tabler-users-group"
+              density="compact"
+            />
+          </VCol>
+          <VCol cols="12">
+            <VAutocomplete
+              v-model="moveForm.bank_id"
+              :items="moveBanks.map(b => ({ title: b.name, value: b.id }))"
+              label="IBAN (Banka Hesabı)"
+              prepend-inner-icon="tabler-building-bank"
+              density="compact"
+              :disabled="!moveForm.team_id"
+              :loading="moveTeamLoading"
+            />
+          </VCol>
+        </VRow>
+      </VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="showMoveDialog = false">İptal</VBtn>
+        <VBtn color="primary" prepend-icon="tabler-arrows-exchange-2" :loading="moveSaving" @click="submitMove">Taşı</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>
