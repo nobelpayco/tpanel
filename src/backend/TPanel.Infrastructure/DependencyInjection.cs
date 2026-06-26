@@ -92,6 +92,7 @@ public static class DependencyInjection
 
         // ---- Arka plan işleri (Faz 6a) ----
         services.AddScoped<Application.Features.Background.IDailyCaseSnapshotJob, DailyCaseSnapshotJob>();
+        services.AddScoped<Application.Features.Background.IMerchantReconReportJob, MerchantReconReportJob>();
         services.AddScoped<Application.Features.Background.IExpirePendingJob, ExpirePendingJob>();
         services.AddScoped<Application.Features.Background.ICheckPendingNotificationsJob, CheckPendingNotificationsJob>();
         services.AddScoped<Application.Features.Background.ICheckLowAmountRiskJob, CheckLowAmountRiskJob>();
