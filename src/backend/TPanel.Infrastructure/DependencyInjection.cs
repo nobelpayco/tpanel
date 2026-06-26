@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<ICallbackService, CallbackService>();
         services.AddScoped<ISystemSettingService, SystemSettingService>();
         services.AddScoped<Application.Features.Audit.IAuditLogger, AuditLogger>();
+        services.AddScoped<Application.Features.Audit.IAuditContext, AuditContext>();
         services.AddScoped<ITelegramService, TelegramService>();
         services.AddScoped<Application.Features.Telegram.ITelegramWebhookService, TelegramWebhookService>();
         services.AddScoped<IReceiptStorage, FileReceiptStorage>();

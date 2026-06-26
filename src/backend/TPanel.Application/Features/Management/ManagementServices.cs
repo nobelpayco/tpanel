@@ -146,8 +146,9 @@ public interface IUserMgmtService
 public class UserMgmtService : IUserMgmtService
 {
     private readonly IManagementStore _s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
     private static readonly Regex PwRegex = new(@"^(?=.*[A-Za-z])(?=.*\d).+$", RegexOptions.Compiled);
-    public UserMgmtService(IManagementStore s) => _s = s;
+    public UserMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
 
     public async Task<MgmtResult> IndexAsync(User u, string? userType, string? status, string? search, CancellationToken ct = default)
     {
@@ -188,6 +189,8 @@ public class UserMgmtService : IUserMgmtService
         { if (b.FirmId is null) return MgmtResult.Msg(422, "Merchant seçimi zorunludur."); firmId = b.FirmId.Value; if (!await _s.MerchantExistsAsync(firmId.Value, ct)) return MgmtResult.Msg(422, "Merchant bulunamadı."); }
 
         var id = await _s.CreateUserAsync(b.Name, b.Username, MgmtRandom.Md5(b.Password), (int)targetType, teamId, firmId, b.Status.Value, b.TwoFactor == true ? 1 : 0, u.Id, ct);
+        _audit.Set($"Kullanıcı oluşturuldu: {b.Username} (tip {(int)targetType})", "user", id.ToString(),
+            null, new { username = b.Username, user_type = (int)targetType, status = b.Status.Value, two_factor = b.TwoFactor == true });
         return MgmtResult.Ok(new { message = "Kullanıcı eklendi.", id });
     }
 
@@ -229,6 +232,8 @@ public class UserMgmtService : IUserMgmtService
 
         var killTokens = b.Status.Value == 0 || becameBlocked || twoFactorChanged;
         await _s.UpdateUserAsync(id, fields, killTokens, ct);
+        _audit.Set($"Kullanıcı güncellendi: {b.Username} (#{id})", "user", id.ToString(),
+            new { username = target.Username, status = target.Status }, fields);
         return MgmtResult.Msg(200, "Kullanıcı güncellendi.");
     }
 
@@ -241,6 +246,8 @@ public class UserMgmtService : IUserMgmtService
         if (!actor.CanEditUser(target)) return MgmtResult.Msg(403, "Bu kullanıcıyı silme yetkiniz yok.");
         if (target.Id == actor.Id) return MgmtResult.Msg(422, "Kendinizi silemezsiniz.");
         await _s.DisableUserAsync(id, ct);
+        _audit.Set($"Kullanıcı pasifleştirildi: {target.Username} (#{id})", "user", id.ToString(),
+            new { username = target.Username, status = target.Status }, new { status = "0" });
         return MgmtResult.Msg(200, "Kullanıcı pasif edildi ve oturumu sonlandırıldı.");
     }
 }
@@ -309,13 +316,15 @@ public interface ISettingsMgmtService
 public class SettingsMgmtService : ISettingsMgmtService
 {
     private readonly IManagementStore _s;
-    public SettingsMgmtService(IManagementStore s) => _s = s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+    public SettingsMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
     public async Task<MgmtResult> IndexAsync(CancellationToken ct = default) => MgmtResult.Ok(await _s.SettingsIndexAsync(ct));
     public async Task<MgmtResult> UpdateAsync(SettingsUpdateBody b, CancellationToken ct = default)
     {
         if (b.Settings is null) return MgmtResult.Msg(422, "settings zorunludur.");
         var dict = b.Settings.ToDictionary(kv => kv.Key, kv => kv.Value.ValueKind == System.Text.Json.JsonValueKind.String ? kv.Value.GetString() ?? "" : kv.Value.ToString());
         await _s.UpdateSettingsAsync(dict, ct);
+        _audit.Set($"Sistem ayarları güncellendi ({dict.Count} alan)", "settings", null, null, dict);
         return MgmtResult.Msg(200, "Ayarlar kaydedildi.");
     }
     public async Task<MgmtResult> LogsAsync(string? direction, string? type, string? q, int page, CancellationToken ct = default) => MgmtResult.Ok(await _s.LogsAsync(direction, type, q, Math.Max(1, page), ct));
