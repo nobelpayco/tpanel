@@ -33,7 +33,7 @@ public class SystemController : ControllerBase
         if (u is null) return Unauthorized(new { message = "Unauthenticated." });
         if (!u.IsSuperAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
         if (string.IsNullOrWhiteSpace(body?.Date)) return StatusCode(422, new { message = "Tarih zorunludur (yyyy-MM-dd)." });
-        await job.RunAsync(body.Date, ct);
+        await job.RunAsync(body.Date, force: true, ct);
         return Ok(new { message = $"{body.Date} mutabakat raporu Telegram'a gönderildi." });
     }
 

@@ -6,10 +6,10 @@ public interface IDailyCaseSnapshotJob
     Task RunAsync(string date, CancellationToken ct = default);
 }
 
-/// <summary>Günlük merchant mutabakat raporu → Telegram (TAKIM TOPLANTI). date = rapor günü (yyyy-MM-dd).</summary>
+/// <summary>Günlük merchant mutabakat raporu → Telegram (TAKIM TOPLANTI). date = rapor günü (yyyy-MM-dd). force=true guard'ı atlar (manuel tetik).</summary>
 public interface IMerchantReconReportJob
 {
-    Task RunAsync(string date, CancellationToken ct = default);
+    Task RunAsync(string date, bool force = false, CancellationToken ct = default);
 }
 
 /// <summary>Süre dolan pending invest'leri otomatik reddet + fail callback.</summary>

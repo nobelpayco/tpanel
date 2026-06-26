@@ -25,8 +25,12 @@ public class MerchantReconReportJob : IMerchantReconReportJob
         _factory = factory; _telegram = telegram; _settings = settings;
     }
 
-    public async Task RunAsync(string date, CancellationToken ct = default)
+    public async Task RunAsync(string date, bool force = false, CancellationToken ct = default)
     {
+        // Kalıcı guard: bu gün için zaten gönderildiyse tekrar atma (app restart/deploy'da çift gönderimi önler).
+        // force=true (manuel tetik) bu kontrolü atlar.
+        if (!force && (await _settings.GetAsync("recon_report_last_sent", ct)) == date) return;
+
         var chatId = (await _settings.GetAsync("recon_report_chat_id", ct)) ?? DefaultChatId;
         if (string.IsNullOrWhiteSpace(chatId)) return;
 
@@ -87,7 +91,8 @@ public class MerchantReconReportJob : IMerchantReconReportJob
         if (shown == 0) sb.Append("\n(Bu güne ait hareket yok.)\n");
         else sb.Append($"\n──────────────\n<b>TOPLAM</b>  Yatırım {M(totYat)} · Çekim {M(totCek)}");
 
-        await _telegram.SendTextAsync(chatId, sb.ToString(), "HTML", ct: ct);
+        var ok = await _telegram.SendTextAsync(chatId, sb.ToString(), "HTML", ct: ct);
+        if (ok) await _settings.SetAsync("recon_report_last_sent", date, ct);
     }
 
     private static string M(double v) => "₺" + Math.Round(v).ToString("#,##0", Tr);

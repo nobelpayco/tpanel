@@ -87,7 +87,7 @@ public class SchedulerHostedService : BackgroundService
         if (afterReportWindow && _lastReportRunDate != today)
         {
             var yesterday = now.Date.AddDays(-1).ToString("yyyy-MM-dd");
-            await Run($"recon-report:{yesterday}", async () => await sp.GetRequiredService<IMerchantReconReportJob>().RunAsync(yesterday, ct));
+            await Run($"recon-report:{yesterday}", async () => await sp.GetRequiredService<IMerchantReconReportJob>().RunAsync(yesterday, ct: ct));
             _lastReportRunDate = today;
         }
     }
