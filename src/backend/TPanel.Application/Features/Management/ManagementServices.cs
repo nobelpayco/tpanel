@@ -265,11 +265,28 @@ public interface IBlacklistMgmtService
 public class BlacklistMgmtService : IBlacklistMgmtService
 {
     private readonly IManagementStore _s;
-    public BlacklistMgmtService(IManagementStore s) => _s = s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+    public BlacklistMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
     public async Task<MgmtResult> IndexAsync(string? search, string? type, CancellationToken ct = default) => MgmtResult.Ok(await _s.BlacklistAsync(search, type, ct));
-    public async Task<MgmtResult> StoreAsync(BlacklistStoreBody b, CancellationToken ct = default) { if (string.IsNullOrWhiteSpace(b.Val)) return MgmtResult.Msg(422, "Değer zorunludur."); return await _s.CreateBlacklistAsync(b, ct); }
-    public async Task<MgmtResult> UpdateAsync(int id, string? desc, CancellationToken ct = default) => await _s.UpdateBlacklistAsync(id, desc, ct);
-    public async Task<MgmtResult> DestroyAsync(int id, CancellationToken ct = default) => await _s.DeleteBlacklistAsync(id, ct);
+    public async Task<MgmtResult> StoreAsync(BlacklistStoreBody b, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(b.Val)) return MgmtResult.Msg(422, "Değer zorunludur.");
+        var r = await _s.CreateBlacklistAsync(b, ct);
+        if (r.Status == 200) _audit.Set($"Kara listeye eklendi: {b.Val} (tip {b.Type})", "blacklist", null, null, new { type = b.Type, val = b.Val, desc = b.Desc });
+        return r;
+    }
+    public async Task<MgmtResult> UpdateAsync(int id, string? desc, CancellationToken ct = default)
+    {
+        var r = await _s.UpdateBlacklistAsync(id, desc, ct);
+        if (r.Status == 200) _audit.Set($"Kara liste kaydı güncellendi — #{id}", "blacklist", id.ToString(), null, new { desc });
+        return r;
+    }
+    public async Task<MgmtResult> DestroyAsync(int id, CancellationToken ct = default)
+    {
+        var r = await _s.DeleteBlacklistAsync(id, ct);
+        if (r.Status == 200) _audit.Set($"Kara liste kaydı silindi — #{id}", "blacklist", id.ToString(), null, null);
+        return r;
+    }
     public async Task<MgmtResult> CheckAsync(string? val, CancellationToken ct = default) { if (string.IsNullOrEmpty(val)) return MgmtResult.Msg(422, "Değer zorunludur."); return MgmtResult.Ok(new { blacklisted = await _s.BlacklistCheckAsync(val, ct) }); }
     public Task<byte[]> ExportAsync(string? search, string? type, CancellationToken ct = default) => _s.ExportBlacklistAsync(search, type, ct);
 }

@@ -11,11 +11,13 @@ public partial class CaseStore : ICaseStore
 {
     private readonly IDbConnectionFactory _factory;
     private readonly IClock _clock;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
 
-    public CaseStore(IDbConnectionFactory factory, IClock clock)
+    public CaseStore(IDbConnectionFactory factory, IClock clock, TPanel.Application.Features.Audit.IAuditContext audit)
     {
         _factory = factory;
         _clock = clock;
+        _audit = audit;
     }
 
     private string Today => _clock.Today.ToString("yyyy-MM-dd");
@@ -189,6 +191,8 @@ public partial class CaseStore : ICaseStore
         await c.ExecuteAsync("UPDATE teams SET overturn = overturn - @amt WHERE id=@id", new { id, amt = b.Amount });
         if (b.FundStorageId is not null)
             await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @amt WHERE id=@fs", new { fs = b.FundStorageId, amt = b.Amount });
+        _audit.Set($"Takım kasası ödeme eklendi — takım #{id}, ₺{b.Amount:N2} ({(b.PaymentType == 1 ? "TL" : "Kripto")})",
+            "team_payment", id.ToString(), null, new { team_id = id, payment_type = b.PaymentType, amount = b.Amount });
         return WriteResult.Ok;
     }
 
@@ -203,6 +207,8 @@ public partial class CaseStore : ICaseStore
         if (p.fund_storage_id is not null)
             await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @amt WHERE id=@fs", new { fs = (int)p.fund_storage_id, amt = (decimal)p.amount });
         await c.ExecuteAsync("DELETE FROM team_payments WHERE id=@pid", new { pid = paymentId });
+        _audit.Set($"Takım kasası ödeme silindi — #{paymentId} (₺{Convert.ToDouble(p.amount):N2})",
+            "team_payment", paymentId.ToString(), new { team_id = id, amount = Convert.ToDouble(p.amount) }, null);
         return WriteResult.Ok;
     }
 
@@ -523,6 +529,9 @@ public partial class CaseStore : ICaseStore
             if (deliveryProfit > 0) await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @p WHERE id=@fs", new { fs = b.FundStorageId, p = deliveryProfit });
             else if (deliveryProfit < 0) await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @p WHERE id=@fs", new { fs = b.FundStorageId, p = Math.Abs(deliveryProfit.Value) });
         }
+        _audit.Set($"Merchant kasası ödeme eklendi — merchant #{merchantId}, ₺{b.Amount:N2} ({(b.PaymentType == 1 ? "TL" : "Kripto")})",
+            "merchant_payment", merchantId.ToString(), null,
+            new { merchant_id = merchantId, payment_type = b.PaymentType, amount = b.Amount, apply_commission = b.ApplyCommission });
         return WriteResult.Ok;
     }
 
@@ -541,6 +550,9 @@ public partial class CaseStore : ICaseStore
             else if (dp < 0) await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @p WHERE id=@fs", new { fs = (int)p.fund_storage_id, p = Math.Abs(dp) });
         }
         await c.ExecuteAsync("DELETE FROM merchant_payments WHERE id=@pid", new { pid = paymentId });
+        _audit.Set($"Merchant kasası ödeme silindi — #{paymentId} (₺{Convert.ToDouble(p.amount):N2})",
+            "merchant_payment", paymentId.ToString(),
+            new { merchant_id = merchantId, amount = Convert.ToDouble(p.amount) }, null);
         return WriteResult.Ok;
     }
 
