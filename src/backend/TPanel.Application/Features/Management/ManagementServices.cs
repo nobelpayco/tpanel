@@ -32,15 +32,32 @@ public interface ITeamMgmtService
 public class TeamMgmtService : ITeamMgmtService
 {
     private readonly IManagementStore _s;
-    public TeamMgmtService(IManagementStore s) => _s = s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+    public TeamMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
     public async Task<MgmtResult> IndexAsync(string status, string? search, CancellationToken ct = default) => MgmtResult.Ok(await _s.TeamsAsync(status, search, ct));
     public async Task<MgmtResult> ShowAsync(int id, CancellationToken ct = default) { var t = await _s.TeamAsync(id, ct); return t is null ? MgmtResult.Msg(404, "Takım bulunamadı.") : MgmtResult.Ok(t); }
     public async Task<MgmtResult> StoreAsync(User u, TeamUpsertBody b, CancellationToken ct = default)
-    { if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); if (string.IsNullOrWhiteSpace(b.Name)) return MgmtResult.Msg(422, "İsim zorunludur."); return await _s.CreateTeamAsync(b, ct); }
+    {
+        if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); if (string.IsNullOrWhiteSpace(b.Name)) return MgmtResult.Msg(422, "İsim zorunludur.");
+        var r = await _s.CreateTeamAsync(b, ct);
+        if (r.Status == 200) _audit.Set($"Takım oluşturuldu: {b.Name}", "team", null, null, new { name = b.Name, merchant_ids = b.MerchantIds });
+        return r;
+    }
     public async Task<MgmtResult> UpdateAsync(User u, int id, TeamUpsertBody b, CancellationToken ct = default)
-    { if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); return await _s.UpdateTeamAsync(id, b, ct); }
+    {
+        if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok.");
+        var before = await _s.TeamAsync(id, ct);
+        var r = await _s.UpdateTeamAsync(id, b, ct);
+        if (r.Status == 200) _audit.Set($"Takım güncellendi: {b.Name} (#{id})", "team", id.ToString(), before, b);
+        return r;
+    }
     public async Task<MgmtResult> DestroyAsync(User u, int id, CancellationToken ct = default)
-    { if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); await _s.DisableTeamAsync(id, ct); return MgmtResult.Msg(200, "Takım devre dışı bırakıldı."); }
+    {
+        if (!u.CanManageTeams) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok.");
+        await _s.DisableTeamAsync(id, ct);
+        _audit.Set($"Takım devre dışı bırakıldı — #{id}", "team", id.ToString(), null, new { status = 0 });
+        return MgmtResult.Msg(200, "Takım devre dışı bırakıldı.");
+    }
     public async Task<MgmtResult> MerchantsAsync(int id, CancellationToken ct = default)
         => MgmtResult.Ok(new { merchant_ids = await _s.GetTeamMerchantsAsync(id, ct) });
 }
@@ -64,12 +81,23 @@ public interface IMerchantMgmtService
 public class MerchantMgmtService : IMerchantMgmtService
 {
     private readonly IManagementStore _s;
-    public MerchantMgmtService(IManagementStore s) => _s = s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+    public MerchantMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
     public async Task<MgmtResult> IndexAsync(string status, CancellationToken ct = default) => MgmtResult.Ok(await _s.MerchantsAsync(status, ct));
     public async Task<MgmtResult> StoreAsync(User u, MerchantUpsertBody b, CancellationToken ct = default)
-    { if (!u.CanManageMerchants) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); if (string.IsNullOrWhiteSpace(b.Name)) return MgmtResult.Msg(422, "İsim zorunludur."); return await _s.CreateMerchantAsync(b, MgmtRandom.String(48), ct); }
+    {
+        if (!u.CanManageMerchants) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); if (string.IsNullOrWhiteSpace(b.Name)) return MgmtResult.Msg(422, "İsim zorunludur.");
+        var r = await _s.CreateMerchantAsync(b, MgmtRandom.String(48), ct);
+        if (r.Status == 200) _audit.Set($"Merchant oluşturuldu: {b.Name}", "merchant", null, null, b);
+        return r;
+    }
     public async Task<MgmtResult> UpdateAsync(User u, int id, MerchantUpsertBody b, CancellationToken ct = default)
-    { if (!u.CanManageMerchants) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); await _s.UpdateMerchantAsync(id, b, ct); return MgmtResult.Msg(200, "Merchant güncellendi."); }
+    {
+        if (!u.CanManageMerchants) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok.");
+        await _s.UpdateMerchantAsync(id, b, ct);
+        _audit.Set($"Merchant güncellendi: {b.Name} (#{id})", "merchant", id.ToString(), null, b);
+        return MgmtResult.Msg(200, "Merchant güncellendi.");
+    }
     public async Task<MgmtResult> DestroyAsync(User u, int id, CancellationToken ct = default)
     { if (!u.CanManageMerchants) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); await _s.DisableMerchantAsync(id, ct); return MgmtResult.Msg(200, "Merchant devre dışı bırakıldı."); }
     public async Task<MgmtResult> ShowCredentialsAsync(int id, CancellationToken ct = default) { var r = await _s.ShowCredentialsAsync(id, ct); return r is null ? MgmtResult.Msg(404, "Merchant bulunamadı.") : MgmtResult.Ok(r); }
@@ -99,7 +127,8 @@ public interface IBankAccountMgmtService
 public class BankAccountMgmtService : IBankAccountMgmtService
 {
     private readonly IManagementStore _s;
-    public BankAccountMgmtService(IManagementStore s) => _s = s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+    public BankAccountMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
     public async Task<MgmtResult> IndexAsync(User u, string status, int? bank, int? team, string? search, CancellationToken ct = default)
         => MgmtResult.Ok(await _s.BankAccountsAsync(u.IsTeamMember ? u.TeamId : null, status, bank, team, search, ct));
     public async Task<MgmtResult> BanksAsync(CancellationToken ct = default) => MgmtResult.Ok(await _s.BanksAsync(ct));
@@ -118,16 +147,25 @@ public class BankAccountMgmtService : IBankAccountMgmtService
         if (u.IsTeamMember) b = b with { TeamId = u.TeamId };
         if (b.TeamId is null || b.BankId is null || string.IsNullOrEmpty(b.AccountIban) || string.IsNullOrEmpty(b.AccountHolder) || string.IsNullOrEmpty(b.AccountCode))
             return MgmtResult.Msg(422, "Eksik bilgi.");
-        return await _s.CreateBankAccountAsync(b, ct);
+        var r = await _s.CreateBankAccountAsync(b, ct);
+        if (r.Status == 200) _audit.Set($"Banka hesabı oluşturuldu: {b.AccountHolder} ({b.AccountIban})", "bank_account", null, null, new { b.AccountHolder, b.AccountIban, b.TeamId, b.BankId });
+        return r;
     }
     public async Task<MgmtResult> UpdateAsync(User u, int id, BankAccountUpsertBody b, CancellationToken ct = default)
     {
         if (!u.CanManageBankAccounts) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok.");
         if (u.IsTeamMember) b = b with { TeamId = u.TeamId };
-        return await _s.UpdateBankAccountAsync(id, b, ct);
+        var r = await _s.UpdateBankAccountAsync(id, b, ct);
+        if (r.Status == 200) _audit.Set($"Banka hesabı güncellendi — #{id} ({b.AccountIban})", "bank_account", id.ToString(), null, new { b.AccountHolder, b.AccountIban, b.TeamId, b.BankId, b.Status });
+        return r;
     }
     public async Task<MgmtResult> DestroyAsync(User u, int id, CancellationToken ct = default)
-    { if (!u.CanManageBankAccounts) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); await _s.DisableBankAccountAsync(id, ct); return MgmtResult.Msg(200, "Hesap devre dışı bırakıldı."); }
+    {
+        if (!u.CanManageBankAccounts) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok.");
+        await _s.DisableBankAccountAsync(id, ct);
+        _audit.Set($"Banka hesabı devre dışı bırakıldı — #{id}", "bank_account", id.ToString(), null, new { status = 0 });
+        return MgmtResult.Msg(200, "Hesap devre dışı bırakıldı.");
+    }
     public async Task<MgmtResult> ReorderAsync(User u, IReadOnlyList<int>? ids, CancellationToken ct = default)
     { if (!u.IsAdmin) return MgmtResult.Msg(403, "Bu işlem için yetkiniz yok."); if (ids is null || ids.Count == 0) return MgmtResult.Msg(422, "ids zorunludur."); await _s.ReorderBankAccountsAsync(ids, ct); return MgmtResult.Msg(200, "Sıralama güncellendi."); }
     public async Task<MgmtResult> SetSortAsync(User u, int id, int position, CancellationToken ct = default)
