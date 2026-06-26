@@ -163,6 +163,19 @@ public class DepositsController : AdminControllerBase
         return Ok(new { id, message = "Manuel yatırım eklendi." });
     }
 
+    // ---- Bekleyen yatırımı başka takıma taşı (yalnızca Super/Sub Admin) ----
+    [HttpPost("{id:int}/move-team")]
+    public async Task<IActionResult> MoveTeam(int id, [FromBody] MoveTeamBody body, [FromServices] ITransactionAdminStore store, CancellationToken ct)
+    {
+        var user = await LoadUserAsync(_currentUser, ct);
+        if (user is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!user.IsAdmin) return StatusCode(403, new { message = "Yetkisiz." });
+        if (body.TeamId is null or <= 0) return BadRequest(new { message = "Takım seçilmeli." });
+        if (body.BankId is null or <= 0) return BadRequest(new { message = "IBAN seçilmeli." });
+        var (ok, msg) = await store.MoveDepositTeamAsync(id, body.TeamId.Value, body.BankId.Value, user.Id, ct);
+        return StatusCode(ok ? 200 : 422, new { message = msg });
+    }
+
     private static string MimeFromExtension(string ext) => ext.ToLowerInvariant() switch
     {
         ".jpg" or ".jpeg" => "image/jpeg",
@@ -173,3 +186,7 @@ public class DepositsController : AdminControllerBase
         _ => "application/octet-stream",
     };
 }
+
+public record MoveTeamBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("bank_id")] int? BankId);

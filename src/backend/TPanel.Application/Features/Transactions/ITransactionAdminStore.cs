@@ -50,6 +50,8 @@ public interface ITransactionAdminStore
     Task<UserRow?> GetFirstActiveTeamUserAsync(int teamId, CancellationToken ct = default);
     Task<IReadOnlyList<int>> FilterEligibleForAssignAsync(IReadOnlyList<int> ids, CancellationToken ct = default);
     Task BulkAssignAsync(IReadOnlyList<int> ids, int teamId, int agentId, CancellationToken ct = default);
+    /// <summary>Bekleyen yatırımı (type=1, status=1) başka takıma + o takımın IBAN'ına taşır.</summary>
+    Task<(bool ok, string message)> MoveDepositTeamAsync(int id, int teamId, int bankId, int actorUserId, CancellationToken ct = default);
 
     // notify-missing-receipts
     Task<IReadOnlyList<MissingReceiptRow>> GetMissingReceiptsAsync(int teamId, DateTime enabledAt, CancellationToken ct = default);

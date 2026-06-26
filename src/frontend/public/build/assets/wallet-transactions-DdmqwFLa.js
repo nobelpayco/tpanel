@@ -1,1 +1,0 @@
-import{_ as t}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{c as n,o,d as r}from"./main-C8b_t-le.js";const a={};function s(c,e){return o(),n("div",null,[...e[0]||(e[0]=[r("h1",null,"wallet-transactions",-1)])])}const i=t(a,[["render",s]]);export{i as default};
