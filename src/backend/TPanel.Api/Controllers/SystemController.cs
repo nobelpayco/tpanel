@@ -25,6 +25,18 @@ public class SystemController : ControllerBase
         return Ok(new { message = $"{body.Date} snapshot üretildi." });
     }
 
+    /// <summary>Günlük merchant mutabakat raporunu manuel tetikle (Telegram'a gönderir). Test için.</summary>
+    [HttpPost("run-recon-report")]
+    public async Task<IActionResult> RunReconReport([FromBody] RunSnapshotBody body, [FromServices] TPanel.Application.Features.Background.IMerchantReconReportJob job, CancellationToken ct)
+    {
+        var u = await _cu.GetUserAsync(ct);
+        if (u is null) return Unauthorized(new { message = "Unauthenticated." });
+        if (!u.IsSuperAdmin) return StatusCode(403, new { message = "Bu işlem için yetkiniz yok." });
+        if (string.IsNullOrWhiteSpace(body?.Date)) return StatusCode(422, new { message = "Tarih zorunludur (yyyy-MM-dd)." });
+        await job.RunAsync(body.Date, ct);
+        return Ok(new { message = $"{body.Date} mutabakat raporu Telegram'a gönderildi." });
+    }
+
     /// <summary>Telegram webhook'unu kaydet. body.url verilmezse App:Url + /api/telegram/webhook kullanılır.</summary>
     [HttpPost("telegram/set-webhook")]
     public async Task<IActionResult> SetTelegramWebhook([FromBody] SetWebhookBody? body, [FromServices] ITelegramService telegram, [FromServices] IConfiguration config, CancellationToken ct)

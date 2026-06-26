@@ -17,6 +17,7 @@ public class SchedulerHostedService : BackgroundService
     private readonly IClock _clock;
     private readonly ILogger<SchedulerHostedService> _logger;
     private string? _lastSnapshotRunDate;
+    private string? _lastReportRunDate;
     private int _pendingRunning; // CheckPending çakışma koruması (6×10sn döngü tick'i bloklamasın)
 
     public SchedulerHostedService(IServiceScopeFactory scopeFactory, IClock clock, ILogger<SchedulerHostedService> logger)
@@ -79,6 +80,15 @@ public class SchedulerHostedService : BackgroundService
             var yesterday = now.Date.AddDays(-1).ToString("yyyy-MM-dd");
             await Run($"snapshot:{yesterday}", async () => await sp.GetRequiredService<IDailyCaseSnapshotJob>().RunAsync(yesterday, ct));
             _lastSnapshotRunDate = today;
+        }
+
+        // 00:15'te bir önceki günün merchant mutabakat raporu → Telegram (TAKIM TOPLANTI)
+        var afterReportWindow = now.Hour > 0 || (now.Hour == 0 && now.Minute >= 15);
+        if (afterReportWindow && _lastReportRunDate != today)
+        {
+            var yesterday = now.Date.AddDays(-1).ToString("yyyy-MM-dd");
+            await Run($"recon-report:{yesterday}", async () => await sp.GetRequiredService<IMerchantReconReportJob>().RunAsync(yesterday, ct));
+            _lastReportRunDate = today;
         }
     }
 
