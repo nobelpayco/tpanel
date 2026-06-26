@@ -31,6 +31,7 @@
     "settings": "Settings",
     "system": "System",
     "api_logs": "API & Callback Logs",
+    "audit_logs": "Audit Logs",
     "reports": "Reports",
     "wallet_transactions": "Wallet Transactions",
     "blacklist": "Blacklist",

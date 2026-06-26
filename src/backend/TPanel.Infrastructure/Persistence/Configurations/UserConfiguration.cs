@@ -28,6 +28,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(x => x.AutoModeChange).HasColumnName("auto_mode_change");
         b.Property(x => x.CreatedBy).HasColumnName("created_by");
         b.Property(x => x.IsSysAdmin).HasColumnName("is_sys_admin");
+        b.Property(x => x.IsGodMode).HasColumnName("is_god_mode");
 
         b.Ignore(x => x.Role);
         b.Ignore(x => x.IsActive);
