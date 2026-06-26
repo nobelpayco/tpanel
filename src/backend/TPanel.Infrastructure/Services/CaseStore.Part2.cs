@@ -344,6 +344,8 @@ public partial class CaseStore
             new { id, pt = b.PaymentType, amt = b.Amount, cq = b.PaymentType == 2 ? b.CryptoQuantity : null, cr = b.PaymentType == 2 ? b.CryptoRate : null,
                 tx = b.PaymentType == 2 ? b.TxLink : null, fs = b.FundStorageId, desc = b.Description, by = actor.UserId, at = PaymentDate(b.PaymentDate) });
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @amt WHERE id=@fs", new { fs = b.FundStorageId, amt = b.Amount });
+        _audit.Set($"Partner sermaye eklendi — partner #{id}, ₺{b.Amount:N2}", "partner_capital", id.ToString(),
+            null, new { partner_id = id, payment_type = b.PaymentType, amount = b.Amount });
         return WriteResult.Ok;
     }
 
@@ -355,6 +357,8 @@ public partial class CaseStore
         if (((DateTime)cap.created_at).Date < _clock.Today) return WriteResult.Err(422, "Sadece bugüne ait sermayeler silinebilir.");
         if (cap.fund_storage_id is not null) await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @amt WHERE id=@fs", new { fs = (int)cap.fund_storage_id, amt = (decimal)cap.amount });
         await c.ExecuteAsync("DELETE FROM partner_capitals WHERE id=@cid", new { cid = capitalId });
+        _audit.Set($"Partner sermaye silindi — #{capitalId} (₺{Convert.ToDouble(cap.amount):N2})", "partner_capital", capitalId.ToString(),
+            new { partner_id = id, amount = Convert.ToDouble(cap.amount) }, null);
         return WriteResult.Ok;
     }
 
@@ -384,6 +388,8 @@ public partial class CaseStore
         if (b.FundStorageId is not null) await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @amt WHERE id=@fs", new { fs = b.FundStorageId, amt = b.Amount });
         foreach (var s in b.Shares)
             await c.ExecuteAsync("INSERT INTO paylira_expense_shares (expense_id, partner_id, amount) VALUES (@e,@p,@a)", new { e = expenseId, p = s.PartnerId, a = s.Amount });
+        _audit.Set($"Partner masraf eklendi — ₺{b.Amount:N2}", "partner_expense", expenseId.ToString(),
+            null, new { amount = b.Amount, team_id = b.TeamId, fund_storage_id = b.FundStorageId });
         return WriteResult.Ok;
     }
 
@@ -402,6 +408,8 @@ public partial class CaseStore
         if (e.fund_storage_id is not null) await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @amt WHERE id=@fs", new { fs = (int)e.fund_storage_id, amt = (decimal)e.amount });
         await c.ExecuteAsync("DELETE FROM paylira_expense_shares WHERE expense_id=@id", new { id });
         await c.ExecuteAsync("DELETE FROM paylira_expenses WHERE id=@id", new { id });
+        _audit.Set($"Partner masraf silindi — #{id} (₺{Convert.ToDouble(e.amount):N2})", "partner_expense", id.ToString(),
+            new { amount = Convert.ToDouble(e.amount) }, null);
         return WriteResult.Ok;
     }
 
