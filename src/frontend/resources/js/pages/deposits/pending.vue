@@ -394,9 +394,7 @@ const submitMove = async () => {
                 <div v-if="d.status === 1 || d.status === 2" class="d-flex gap-1 justify-end py-1">
                   <VBtn color="success" size="small" variant="flat" min-width="80" density="comfortable" @click="quickApprove(d)">Onayla</VBtn>
                   <VBtn color="error" size="small" variant="flat" min-width="80" density="comfortable" @click="quickReject(d, 1)">Reddet</VBtn>
-                  <VBtn v-if="isAdmin && d.status === 1" icon size="small" variant="text" color="warning" title="Başka takıma taşı" @click="openMoveDialog(d)">
-                    <VIcon icon="tabler-arrows-exchange-2" size="18" />
-                  </VBtn>
+                  <VBtn v-if="isAdmin && d.status === 1" color="warning" size="small" variant="flat" min-width="80" density="comfortable" prepend-icon="tabler-arrows-exchange-2" title="Başka takıma taşı" @click="openMoveDialog(d)">Taşı</VBtn>
                 </div>
               </td>
             </tr>
