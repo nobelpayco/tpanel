@@ -39,12 +39,14 @@ public class WithdrawAdminService : IWithdrawAdminService
     private readonly IPerceptualHasher _hasher;
     private readonly IClock _clock;
 
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+
     public WithdrawAdminService(ITransactionAdminStore store, ICallbackService callbacks, IMerchantBankService banks,
         ITelegramService telegram, IWithdrawReceiptStorage receipts, IReceiptVerificationQueue verifyQueue,
-        IPerceptualHasher hasher, IClock clock)
+        IPerceptualHasher hasher, IClock clock, TPanel.Application.Features.Audit.IAuditContext audit)
     {
         _store = store; _callbacks = callbacks; _banks = banks; _telegram = telegram;
-        _receipts = receipts; _verifyQueue = verifyQueue; _hasher = hasher; _clock = clock;
+        _receipts = receipts; _verifyQueue = verifyQueue; _hasher = hasher; _clock = clock; _audit = audit;
     }
 
     private async Task<QueryScope> ScopeAsync(User user, CancellationToken ct)
@@ -186,6 +188,9 @@ public class WithdrawAdminService : IWithdrawAdminService
         if (updated is not null) await _callbacks.SendForInvestAsync(updated, true, triggeredBy: user.Id, ct: ct);
         if (invest.TeamId is not null) await _banks.EnforceMaxCaseAsync(new[] { invest.TeamId.Value }, ct);
 
+        _audit.Set($"Çekim onaylandı — #{id} (₺{invest.Amount:N2})", "invest", id.ToString(),
+            new { status = invest.Status }, new { status = "3" });
+
         return ApiResult.Msg(200, "Çekim onaylandı.");
     }
 
@@ -207,6 +212,10 @@ public class WithdrawAdminService : IWithdrawAdminService
 
         var updated = await _store.GetInvestAsync(id, ct);
         if (updated is not null) await _callbacks.SendForInvestAsync(updated, false, rejectMessages[rejectType], user.Id, ct: ct);
+
+        _audit.Set($"Çekim reddedildi — #{id} ({rejectMessages[rejectType]})", "invest", id.ToString(),
+            new { status = invest.Status }, new { status = "4", rejectType });
+
         return ApiResult.Msg(200, "Çekim reddedildi.");
     }
 

@@ -165,7 +165,8 @@ public class DepositsController : AdminControllerBase
 
     // ---- Bekleyen yatırımı başka takıma taşı (yalnızca Super/Sub Admin) ----
     [HttpPost("{id:int}/move-team")]
-    public async Task<IActionResult> MoveTeam(int id, [FromBody] MoveTeamBody body, [FromServices] ITransactionAdminStore store, CancellationToken ct)
+    public async Task<IActionResult> MoveTeam(int id, [FromBody] MoveTeamBody body, [FromServices] ITransactionAdminStore store,
+        [FromServices] TPanel.Application.Features.Audit.IAuditContext audit, CancellationToken ct)
     {
         var user = await LoadUserAsync(_currentUser, ct);
         if (user is null) return Unauthorized(new { message = "Unauthenticated." });
@@ -173,6 +174,8 @@ public class DepositsController : AdminControllerBase
         if (body.TeamId is null or <= 0) return BadRequest(new { message = "Takım seçilmeli." });
         if (body.BankId is null or <= 0) return BadRequest(new { message = "IBAN seçilmeli." });
         var (ok, msg) = await store.MoveDepositTeamAsync(id, body.TeamId.Value, body.BankId.Value, user.Id, ct);
+        if (ok) audit.Set($"Yatırım başka takıma taşındı — #{id} → takım #{body.TeamId} (IBAN #{body.BankId})",
+            "invest", id.ToString(), null, new { team_id = body.TeamId, bank_id = body.BankId });
         return StatusCode(ok ? 200 : 422, new { message = msg });
     }
 

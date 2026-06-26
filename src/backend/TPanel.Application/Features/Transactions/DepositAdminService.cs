@@ -22,13 +22,15 @@ public class DepositAdminService : IDepositAdminService
     private readonly ICallbackService _callbacks;
     private readonly IMerchantBankService _banks;
     private readonly IClock _clock;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
 
-    public DepositAdminService(ITransactionAdminStore store, ICallbackService callbacks, IMerchantBankService banks, IClock clock)
+    public DepositAdminService(ITransactionAdminStore store, ICallbackService callbacks, IMerchantBankService banks, IClock clock, TPanel.Application.Features.Audit.IAuditContext audit)
     {
         _store = store;
         _callbacks = callbacks;
         _banks = banks;
         _clock = clock;
+        _audit = audit;
     }
 
     private async Task<QueryScope> ScopeAsync(User user, CancellationToken ct)
@@ -134,6 +136,11 @@ public class DepositAdminService : IDepositAdminService
 
         if (invest.TeamId is not null) await _banks.EnforceMaxCaseAsync(new[] { invest.TeamId.Value }, ct);
 
+        var finalAmount = (amount is not null && amount.Value != invest.Amount) ? amount.Value : invest.Amount;
+        _audit.Set($"Yatırım onaylandı — #{id} (₺{finalAmount:N2})", "invest", id.ToString(),
+            new { status = invest.Status, amount = invest.Amount },
+            new { status = "3", amount = finalAmount });
+
         return ApiResult.Msg(200, "İşlem onaylandı.");
     }
 
@@ -164,6 +171,10 @@ public class DepositAdminService : IDepositAdminService
 
         var updated = await _store.GetInvestAsync(id, ct);
         if (updated is not null) await _callbacks.SendForInvestAsync(updated, false, rejectMessages[rejectType], user.Id, ct: ct);
+
+        _audit.Set($"Yatırım reddedildi — #{id} ({rejectMessages[rejectType]})", "invest", id.ToString(),
+            new { status = invest.Status },
+            new { status = "4", rejectType });
 
         return ApiResult.Msg(200, "İşlem reddedildi.");
     }

@@ -15,8 +15,9 @@ public class AuditActionFilter : IAsyncResultFilter
 
     private readonly IAuditLogger _audit;
     private readonly ICurrentUser _currentUser;
+    private readonly IAuditContext _ctx;
 
-    public AuditActionFilter(IAuditLogger audit, ICurrentUser currentUser) { _audit = audit; _currentUser = currentUser; }
+    public AuditActionFilter(IAuditLogger audit, ICurrentUser currentUser, IAuditContext ctx) { _audit = audit; _currentUser = currentUser; _ctx = ctx; }
 
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
@@ -36,8 +37,9 @@ public class AuditActionFilter : IAsyncResultFilter
             var user = await _currentUser.GetUserAsync(http.RequestAborted);
             var controller = context.RouteData.Values["controller"]?.ToString();
             var actionName = context.RouteData.Values["action"]?.ToString();
-            var entityId = context.RouteData.Values["id"]?.ToString();
+            var routeId = context.RouteData.Values["id"]?.ToString();
 
+            // Kritik aksiyon zengin açıklama/before-after bıraktıysa onu kullan; yoksa jenerik.
             await _audit.WriteAsync(new AuditEntry(
                 UserId: user?.Id,
                 UserName: user?.Username,
@@ -45,10 +47,11 @@ public class AuditActionFilter : IAsyncResultFilter
                 Method: req.Method,
                 Path: path,
                 Action: controller is null ? actionName : $"{controller}.{actionName}",
-                EntityType: controller,
-                EntityId: entityId,
-                Description: null,
-                StatusCode: http.Response.StatusCode), http.RequestAborted);
+                EntityType: _ctx.HasEntry ? (_ctx.EntityType ?? controller) : controller,
+                EntityId: _ctx.HasEntry ? (_ctx.EntityId ?? routeId) : routeId,
+                Description: _ctx.HasEntry ? _ctx.Description : null,
+                StatusCode: http.Response.StatusCode,
+                Meta: _ctx.HasEntry ? _ctx.Meta : null), http.RequestAborted);
         }
         catch { /* audit asla isteği kırmaz */ }
     }

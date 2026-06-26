@@ -34,6 +34,11 @@ const formatDate = (val) => {
   return d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+const showDetail = ref(false)
+const detailRow = ref(null)
+const openDetail = (r) => { detailRow.value = r; showDetail.value = true }
+const prettyMeta = (meta) => { try { return JSON.stringify(JSON.parse(meta), null, 2) } catch { return meta || '' } }
+
 const fetchData = async () => {
   loading.value = true
   try {
@@ -94,10 +99,11 @@ onMounted(fetchData)
               <th>Kullanıcı</th>
               <th>Yöntem</th>
               <th>Aksiyon</th>
-              <th>Yol</th>
+              <th>Açıklama</th>
               <th>Hedef</th>
               <th>IP</th>
               <th class="text-end">Sonuç</th>
+              <th class="text-end">Detay</th>
             </tr>
           </thead>
           <tbody>
@@ -106,13 +112,16 @@ onMounted(fetchData)
               <td class="text-body-2">{{ r.user_name || '-' }}<span v-if="r.user_id" class="text-caption text-medium-emphasis"> (#{{ r.user_id }})</span></td>
               <td><VChip :color="methodColor(r.method)" label size="x-small">{{ r.method }}</VChip></td>
               <td class="text-body-2">{{ r.action || '-' }}</td>
-              <td class="text-caption text-medium-emphasis">{{ r.path }}</td>
+              <td class="text-body-2" style="max-width: 320px; white-space: normal;">{{ r.description || '-' }}</td>
               <td class="text-body-2">{{ r.entity_id ? `#${r.entity_id}` : '-' }}</td>
               <td class="text-caption text-medium-emphasis">{{ r.ip || '-' }}</td>
               <td class="text-end"><VChip :color="statusColor(r.status_code)" label size="x-small">{{ r.status_code }}</VChip></td>
+              <td class="text-end">
+                <VBtn icon size="x-small" variant="text" @click="openDetail(r)"><VIcon icon="tabler-eye" size="18" /></VBtn>
+              </td>
             </tr>
             <tr v-if="!loading && items.length === 0">
-              <td colspan="8" class="text-center text-medium-emphasis py-4">Kayıt yok</td>
+              <td colspan="9" class="text-center text-medium-emphasis py-4">Kayıt yok</td>
             </tr>
           </tbody>
         </VTable>
@@ -124,4 +133,45 @@ onMounted(fetchData)
       </VCard>
     </VCol>
   </VRow>
+
+  <!-- Detay dialog (eski/yeni değer) -->
+  <VDialog v-model="showDetail" max-width="640">
+    <VCard v-if="detailRow">
+      <VCardItem>
+        <VCardTitle class="d-flex align-center gap-2"><VIcon icon="tabler-history" />Denetim Kaydı #{{ detailRow.id }}</VCardTitle>
+        <template #append>
+          <VBtn icon size="small" variant="text" @click="showDetail = false"><VIcon icon="tabler-x" /></VBtn>
+        </template>
+      </VCardItem>
+      <VDivider />
+      <VCardText>
+        <table class="detail-kv">
+          <tr><td>Tarih</td><td>{{ formatDate(detailRow.created_at) }}</td></tr>
+          <tr><td>Kullanıcı</td><td>{{ detailRow.user_name || '-' }}<span v-if="detailRow.user_id"> (#{{ detailRow.user_id }})</span></td></tr>
+          <tr><td>Aksiyon</td><td>{{ detailRow.action || '-' }}</td></tr>
+          <tr><td>Açıklama</td><td>{{ detailRow.description || '-' }}</td></tr>
+          <tr><td>Yöntem / Yol</td><td><VChip :color="methodColor(detailRow.method)" label size="x-small">{{ detailRow.method }}</VChip> {{ detailRow.path }}</td></tr>
+          <tr><td>Hedef</td><td>{{ detailRow.entity_type || '-' }}{{ detailRow.entity_id ? ` #${detailRow.entity_id}` : '' }}</td></tr>
+          <tr><td>IP</td><td>{{ detailRow.ip || '-' }}</td></tr>
+          <tr><td>Sonuç</td><td><VChip :color="statusColor(detailRow.status_code)" label size="x-small">{{ detailRow.status_code }}</VChip></td></tr>
+        </table>
+        <div v-if="detailRow.meta" class="mt-4">
+          <div class="text-subtitle-2 mb-1">Eski / Yeni Değer</div>
+          <pre class="meta-box">{{ prettyMeta(detailRow.meta) }}</pre>
+        </div>
+        <div v-else class="text-caption text-medium-emphasis mt-4">Bu kayıt için before/after bilgisi yok (jenerik kayıt).</div>
+      </VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="showDetail = false">Kapat</VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
 </template>
+
+<style scoped>
+.detail-kv { width: 100%; border-collapse: collapse; }
+.detail-kv td { padding: 6px 8px; border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)); vertical-align: top; }
+.detail-kv td:first-child { width: 30%; color: rgba(var(--v-theme-on-surface), 0.6); }
+.meta-box { background: rgba(var(--v-theme-on-surface), 0.05); padding: 12px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow: auto; }
+</style>

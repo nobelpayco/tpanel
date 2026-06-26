@@ -49,7 +49,7 @@ public class AuditLogger : IAuditLogger
         var per = q.PerPage is < 1 or > 200 ? 50 : q.PerPage;
         var page = q.Page < 1 ? 1 : q.Page;
         p.Add("lim", per); p.Add("off", (page - 1) * per);
-        var rows = await c.QueryAsync(@"SELECT id, created_at, user_id, user_name, ip, method, path, action, entity_type, entity_id, description, status_code
+        var rows = await c.QueryAsync(@"SELECT id, created_at, user_id, user_name, ip, method, path, action, entity_type, entity_id, description, status_code, meta
             FROM audit_logs" + where + " ORDER BY id DESC LIMIT @lim OFFSET @off", p);
         return new AuditPage(rows.Cast<object>().ToList(), total);
     }
