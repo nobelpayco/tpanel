@@ -30,6 +30,7 @@ public record UserPayload(
     int team_id,
     int? firm_id,
     bool is_sys_admin,
+    bool is_god_mode,
     PermissionsPayload permissions);
 
 public record PermissionsPayload(

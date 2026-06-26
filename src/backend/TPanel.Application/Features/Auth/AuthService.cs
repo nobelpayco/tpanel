@@ -148,6 +148,7 @@ public class AuthService : IAuthService
         team_id: user.TeamId,
         firm_id: user.FirmId,
         is_sys_admin: user.IsSysAdmin,
+        is_god_mode: user.IsGodMode,
         permissions: new PermissionsPayload(
             manage_users: user.CanManageUsers,
             manage_teams: user.CanManageTeams,

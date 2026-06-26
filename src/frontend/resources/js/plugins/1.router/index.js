@@ -91,6 +91,13 @@ router.beforeEach((to, from, next) => {
       return next('/dashboard')
     }
   }
+  // God Mode kontrolü — Denetim İzleri (audit log)
+  if (to.meta?.godMode) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    if (!user.is_god_mode) {
+      return next('/dashboard')
+    }
+  }
   next()
 })
 

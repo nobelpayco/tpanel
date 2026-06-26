@@ -31,6 +31,7 @@
     "settings": "Ayarlar",
     "system": "Sistem",
     "api_logs": "API & Callback Logları",
+    "audit_logs": "Denetim İzleri",
     "reports": "Raporlar",
     "wallet_transactions": "Cüzdan İşlemleri",
     "blacklist": "Kara Liste",

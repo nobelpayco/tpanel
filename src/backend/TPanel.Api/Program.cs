@@ -9,7 +9,11 @@ using TPanel.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Servisler ----
-builder.Services.AddControllers()
+builder.Services.AddControllers(o =>
+    {
+        // Tüm değiştiren panel isteklerini audit_logs'a yazar (GET ve /api/v1 hariç).
+        o.Filters.Add<TPanel.Api.Filters.AuditActionFilter>();
+    })
     .AddJsonOptions(options =>
     {
         // Frontend snake_case bekliyor; controller'lar anonim/DTO ile kendi şekillerini verir.

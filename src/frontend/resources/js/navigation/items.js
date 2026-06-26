@@ -84,16 +84,18 @@ const allNav = [
       // Ayarlar + API/Callback Logları: yalnızca Sistem Yöneticisi (is_sys_admin)
       { title: 'nav.settings', to: { name: 'settings' }, icon: { icon: 'tabler-settings' }, sysAdmin: true },
       { title: 'nav.api_logs', to: { name: 'system-logs' }, icon: { icon: 'tabler-list-details' }, sysAdmin: true },
+      // Denetim İzleri: yalnızca IsGodMode
+      { title: 'nav.audit_logs', to: { name: 'audit-logs' }, icon: { icon: 'tabler-history' }, godMode: true },
     ],
   },
 ]
 
-function filterNav(items, userType, isSysAdmin) {
+function filterNav(items, userType, isSysAdmin, isGodMode) {
   return items
-    .filter(item => (!item.roles || item.roles.includes(userType)) && (!item.sysAdmin || isSysAdmin))
+    .filter(item => (!item.roles || item.roles.includes(userType)) && (!item.sysAdmin || isSysAdmin) && (!item.godMode || isGodMode))
     .map(item => {
       if (item.children) {
-        const filtered = filterNav(item.children, userType, isSysAdmin)
+        const filtered = filterNav(item.children, userType, isSysAdmin, isGodMode)
         if (filtered.length === 0) return null
         return { ...item, children: filtered }
       }
@@ -127,4 +129,4 @@ if (currentUser.user_type === 3 && currentUser.firm_id) {
   })
 }
 
-export default filterNav(allNav, currentUser.user_type, !!currentUser.is_sys_admin)
+export default filterNav(allNav, currentUser.user_type, !!currentUser.is_sys_admin, !!currentUser.is_god_mode)

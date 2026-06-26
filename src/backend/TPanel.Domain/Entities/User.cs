@@ -33,6 +33,9 @@ public class User
     /// <summary>users.is_sys_admin — Sistem Yöneticisi: "Ayarlar" + "API & Callback Logları" erişimi ve SuperAdmin oluşturma/atama yetkisi. DB'den elle set edilir.</summary>
     public bool IsSysAdmin { get; set; }
 
+    /// <summary>users.is_god_mode — En üst denetim yetkisi: "Denetim İzleri" (audit log) erişimi. DB'den elle set edilir.</summary>
+    public bool IsGodMode { get; set; }
+
     // ---- Yardımcı (mapped değil) ----
     public UserType Role => (UserType)(UserTypeId ?? 0);
     public bool IsActive => Status == "1";

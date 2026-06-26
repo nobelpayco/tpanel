@@ -88,6 +88,7 @@ public class SchedulerHostedService : BackgroundService
         {
             var yesterday = now.Date.AddDays(-1).ToString("yyyy-MM-dd");
             await Run($"recon-report:{yesterday}", async () => await sp.GetRequiredService<IMerchantReconReportJob>().RunAsync(yesterday, ct: ct));
+            await Run("audit-cleanup", async () => await sp.GetRequiredService<TPanel.Application.Features.Audit.IAuditLogger>().CleanupAsync(90, ct));
             _lastReportRunDate = today;
         }
     }
