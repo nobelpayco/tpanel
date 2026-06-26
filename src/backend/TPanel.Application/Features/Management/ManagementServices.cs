@@ -346,11 +346,28 @@ public interface IIntermediaryMgmtService
 public class IntermediaryMgmtService : IIntermediaryMgmtService
 {
     private readonly IManagementStore _s;
-    public IntermediaryMgmtService(IManagementStore s) => _s = s;
+    private readonly TPanel.Application.Features.Audit.IAuditContext _audit;
+    public IntermediaryMgmtService(IManagementStore s, TPanel.Application.Features.Audit.IAuditContext audit) { _s = s; _audit = audit; }
     public async Task<MgmtResult> IndexAsync(string status, CancellationToken ct = default) => MgmtResult.Ok(await _s.IntermediariesAsync(status, ct));
-    public async Task<MgmtResult> StoreAsync(IntermediaryStoreBody b, CancellationToken ct = default) { if (string.IsNullOrWhiteSpace(b.Name) || b.Type is < 1 or > 3) return MgmtResult.Msg(422, "Geçersiz bilgi."); return await _s.CreateIntermediaryAsync(b, ct); }
-    public async Task<MgmtResult> UpdateAsync(int id, IntermediaryUpdateBody b, CancellationToken ct = default) { await _s.UpdateIntermediaryAsync(id, b, ct); return MgmtResult.Msg(200, "Aracı güncellendi."); }
-    public async Task<MgmtResult> DestroyAsync(int id, CancellationToken ct = default) { await _s.DisableIntermediaryAsync(id, ct); return MgmtResult.Msg(200, "Aracı devre dışı bırakıldı."); }
+    public async Task<MgmtResult> StoreAsync(IntermediaryStoreBody b, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(b.Name) || b.Type is < 1 or > 3) return MgmtResult.Msg(422, "Geçersiz bilgi.");
+        var r = await _s.CreateIntermediaryAsync(b, ct);
+        if (r.Status == 200) _audit.Set($"Ara kurum oluşturuldu: {b.Name} (tip {b.Type})", "intermediary", null, null, new { name = b.Name, type = b.Type });
+        return r;
+    }
+    public async Task<MgmtResult> UpdateAsync(int id, IntermediaryUpdateBody b, CancellationToken ct = default)
+    {
+        await _s.UpdateIntermediaryAsync(id, b, ct);
+        _audit.Set($"Ara kurum güncellendi — #{id}", "intermediary", id.ToString(), null, b);
+        return MgmtResult.Msg(200, "Aracı güncellendi.");
+    }
+    public async Task<MgmtResult> DestroyAsync(int id, CancellationToken ct = default)
+    {
+        await _s.DisableIntermediaryAsync(id, ct);
+        _audit.Set($"Ara kurum devre dışı bırakıldı — #{id}", "intermediary", id.ToString(), null, new { status = 0 });
+        return MgmtResult.Msg(200, "Aracı devre dışı bırakıldı.");
+    }
     public async Task<MgmtResult> AttachMerchantAsync(AttachMerchantBody b, CancellationToken ct = default) => await _s.AttachMerchantAsync(b, ct);
     public async Task<MgmtResult> DetachMerchantAsync(int pivotId, CancellationToken ct = default) { await _s.DetachMerchantAsync(pivotId, ct); return MgmtResult.Msg(200, "Bağlantı devre dışı bırakıldı."); }
     public async Task<MgmtResult> UpdateMerchantRateAsync(int pivotId, UpdateRateBody b, CancellationToken ct = default) { await _s.UpdateMerchantRateAsync(pivotId, b, ct); return MgmtResult.Msg(200, "Güncellendi."); }

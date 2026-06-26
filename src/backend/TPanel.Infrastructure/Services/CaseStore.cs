@@ -741,6 +741,8 @@ public partial class CaseStore : ICaseStore
             new { from = b.FromStorageId, to = b.ToStorageId, amt = b.Amount, crate = commissionRate, camt = commissionAmount, recv = received, desc = b.Description, by = actor.UserId, at = string.IsNullOrEmpty(b.TransferDate) ? NowStr : b.TransferDate + " " + _clock.Now.ToString("HH:mm:ss") });
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @amt WHERE id=@id", new { id = b.FromStorageId, amt = b.Amount });
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @amt WHERE id=@id", new { id = b.ToStorageId, amt = received });
+        _audit.Set($"Fon deposu transferi — depo #{b.FromStorageId} → #{b.ToStorageId}, ₺{b.Amount:N2}", "fund_transfer", null,
+            null, new { from = b.FromStorageId, to = b.ToStorageId, amount = b.Amount, received });
         return WriteResult.Ok;
     }
 
@@ -753,6 +755,8 @@ public partial class CaseStore : ICaseStore
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @amt WHERE id=@id", new { id = (int)t.from_storage_id, amt = (decimal)t.amount });
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @amt WHERE id=@id", new { id = (int)t.to_storage_id, amt = (decimal)t.received_amount });
         await c.ExecuteAsync("DELETE FROM fund_transfers WHERE id=@id", new { id });
+        _audit.Set($"Fon deposu transferi silindi — #{id} (₺{Convert.ToDouble(t.amount):N2})", "fund_transfer", id.ToString(),
+            new { from = (int)t.from_storage_id, to = (int)t.to_storage_id, amount = Convert.ToDouble(t.amount) }, null);
         return WriteResult.Ok;
     }
 
@@ -764,6 +768,8 @@ public partial class CaseStore : ICaseStore
         await c.ExecuteAsync(@"INSERT INTO fund_storage_syncs (fund_storage_id, amount, description, created_by, created_at)
             VALUES (@fs,@amt,@desc,@by,@at)", new { fs = b.FundStorageId, amt = b.Amount, desc = b.Description, by = actor.UserId, at = string.IsNullOrEmpty(b.SyncDate) ? NowStr : b.SyncDate + " " + _clock.Now.ToString("HH:mm:ss") });
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance + @amt WHERE id=@fs", new { fs = b.FundStorageId, amt = b.Amount });
+        _audit.Set($"Fon deposu senkronu — depo #{b.FundStorageId}, ₺{b.Amount:N2}", "fund_sync", null,
+            null, new { fund_storage_id = b.FundStorageId, amount = b.Amount });
         return WriteResult.Ok;
     }
 
@@ -774,6 +780,8 @@ public partial class CaseStore : ICaseStore
         if (s is null) return WriteResult.Err(404, "Senkron bulunamadı.");
         await c.ExecuteAsync("UPDATE fund_storages SET balance = balance - @amt WHERE id=@fs", new { fs = (int)s.fund_storage_id, amt = (decimal)s.amount });
         await c.ExecuteAsync("DELETE FROM fund_storage_syncs WHERE id=@id", new { id });
+        _audit.Set($"Fon deposu senkronu silindi — #{id} (₺{Convert.ToDouble(s.amount):N2})", "fund_sync", id.ToString(),
+            new { fund_storage_id = (int)s.fund_storage_id, amount = Convert.ToDouble(s.amount) }, null);
         return WriteResult.Ok;
     }
 }
