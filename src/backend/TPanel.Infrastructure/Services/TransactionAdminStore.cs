@@ -447,6 +447,28 @@ public class TransactionAdminStore : ITransactionAdminStore
             new { ids, teamId, agentId, now = _clock.Now });
     }
 
+    public async Task<(bool ok, string message)> MoveDepositTeamAsync(int id, int teamId, int bankId, int actorUserId, CancellationToken ct = default)
+    {
+        using var conn = await _factory.CreateOpenConnectionAsync(ct);
+        var dep = await conn.QueryFirstOrDefaultAsync("SELECT id, type, status, team_id FROM invest WHERE id=@id", new { id });
+        if (dep is null) return (false, "Yatırım bulunamadı.");
+        if (Convert.ToString((object)dep.type) != "1" || Convert.ToString((object)dep.status) != "1")
+            return (false, "Yalnızca bekleyen yatırımlar taşınabilir.");
+        // IBAN seçilen takıma ait + hesap/takım aktif mi
+        var bankOk = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM bankAccounts ba JOIN teams t ON ba.team_id=t.id WHERE ba.id=@bid AND ba.team_id=@tid AND ba.status=1 AND t.status=1",
+            new { bid = bankId, tid = teamId });
+        if (bankOk == 0) return (false, "Seçilen IBAN bu takıma ait veya aktif değil.");
+
+        var oldTeam = Convert.ToInt32((object)dep.team_id);
+        await conn.ExecuteAsync("UPDATE invest SET team_id=@tid, bank_id=@bid, agent_id=NULL WHERE id=@id",
+            new { tid = teamId, bid = bankId, id });
+        await conn.ExecuteAsync(
+            "INSERT INTO investLog (investID, userID, ip, status, createdAt, detail) VALUES (@iid,@uid,'',@st,@at,@detail)",
+            new { iid = id, uid = actorUserId, st = "1", at = _clock.Now, detail = $"Takım taşındı: #{oldTeam} → #{teamId} (IBAN #{bankId})" });
+        return (true, "Yatırım yeni takıma taşındı.");
+    }
+
     public async Task<IReadOnlyList<MissingReceiptRow>> GetMissingReceiptsAsync(int teamId, DateTime enabledAt, CancellationToken ct = default)
     {
         using var conn = await _factory.CreateOpenConnectionAsync(ct);
