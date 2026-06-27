@@ -88,14 +88,14 @@ public class WithdrawListRow
 
 public class PlayerHistoryRow
 {
-    public int Id { get; set; }
-    public string Type { get; set; } = "";
-    public string Status { get; set; } = "";
-    public double Amount { get; set; }
-    public string? Name { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public DateTime? FinalizeDate { get; set; }
-    public int? RejectType { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("id")] public int Id { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("type")] public string Type { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("status")] public string Status { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("amount")] public double Amount { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("name")] public string? Name { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("created_at")] public DateTime? CreatedAt { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("finalize_date")] public DateTime? FinalizeDate { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("reject_type")] public int? RejectType { get; set; }
 }
 
 public class ReceiptRow
