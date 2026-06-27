@@ -391,7 +391,14 @@ public class MerchantBankService : IMerchantBankService
             }
             else if (!isFull && state == 1)
             {
-                await conn.ExecuteAsync("UPDATE teams SET telegram_max_case_state = 0 WHERE id = @id", new { id });
+                // Çekim onayı vb. ile kasa maks. altına düştü → otomatik TEKRAR AKTİF + TAKIM TOPLANTI uyarısı
+                await conn.ExecuteAsync("UPDATE teams SET status = 1, telegram_max_case_state = 0 WHERE id = @id", new { id });
+                var teamMeetingChat = await _settings.GetAsync("recon_report_chat_id", ct);
+                if (string.IsNullOrEmpty(teamMeetingChat)) teamMeetingChat = "-5094660735";
+                var msg = "✅ *TEKRAR AKTİF* — `" + ITelegramService.Escape((string)t.name) + "`\n"
+                        + "*Takım Kasası:* " + ITelegramService.Escape(current.ToString("N2")) + " TL\n\n"
+                        + "_Maks\\. kasa altına düştü — otomatik aktif edildi\\._";
+                await _telegram.SendAsync(teamMeetingChat!, msg, ct);
             }
         }
         return pasif;

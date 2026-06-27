@@ -86,6 +86,14 @@ public class WithdrawalsController : AdminControllerBase
         return Result(await _service.RejectAsync(user!, body.Id, body.RejectType, ClientIp, ct));
     }
 
+    // Onaylı çekimi reddet (yalnız Süper Admin, sebep zorunlu, callback YOK)
+    [HttpPost("{id:int}/force-reject")]
+    public async Task<IActionResult> ForceReject(int id, [FromBody] ForceRejectBody body, CancellationToken ct)
+    {
+        var (user, err) = await AuthAsync(ct); if (err is not null) return err;
+        return Result(await _service.ForceRejectAsync(user!, id, body.Reason ?? "", ClientIp, ct));
+    }
+
     [HttpPost("bulk-assign")]
     public async Task<IActionResult> BulkAssign([FromBody] BulkAssignBody body, CancellationToken ct)
     {

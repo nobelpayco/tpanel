@@ -488,6 +488,24 @@ const submitMove = async () => {
     else { snackbar.error(data.message || 'Taşınamadı.') }
   } catch { snackbar.error('Sunucu hatası.') } finally { moveSaving.value = false }
 }
+
+// ---- Onaylı çekimi reddet (yalnız Süper Admin, sebep zorunlu, callback YOK) ----
+const showForceReject = ref(false)
+const forceForm = ref({ id: null, order_id: '', reason: '' })
+const forceSaving = ref(false)
+const openForceReject = (w) => { forceForm.value = { id: w.id, order_id: w.order_id, reason: '' }; showForceReject.value = true }
+const submitForceReject = async () => {
+  if (!forceForm.value.reason.trim()) { snackbar.error('Ret sebebi zorunludur.'); return }
+  forceSaving.value = true
+  try {
+    const res = await fetch(`/api/withdrawals/${forceForm.value.id}/force-reject`, {
+      method: 'POST', headers, body: JSON.stringify({ reason: forceForm.value.reason.trim() }),
+    })
+    const data = await res.json()
+    if (res.ok) { showForceReject.value = false; snackbar.success(data.message || 'Reddedildi.'); fetchData() }
+    else { snackbar.error(data.message || 'İşlem reddedilemedi.') }
+  } catch { snackbar.error('Sunucu hatası.') } finally { forceSaving.value = false }
+}
 </script>
 
 <template>
@@ -593,6 +611,14 @@ const submitMove = async () => {
                   @click.stop="openMoveDialog(w)"
                 >
                   <VIcon icon="tabler-arrows-exchange-2" size="18" />
+                </VBtn>
+                <VBtn
+                  v-if="isAdmin && Number(w.status) === 3"
+                  icon size="x-small" variant="text" color="error"
+                  title="Onaylı işlemi reddet (callback gönderilmez)"
+                  @click.stop="openForceReject(w)"
+                >
+                  <VIcon icon="tabler-ban" size="18" />
                 </VBtn>
               </td>
             </tr>
@@ -1093,6 +1119,36 @@ const submitMove = async () => {
         <VSpacer />
         <VBtn variant="text" @click="showMoveDialog = false">İptal</VBtn>
         <VBtn color="primary" prepend-icon="tabler-arrows-exchange-2" :loading="moveSaving" @click="submitMove">Taşı</VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
+
+  <!-- Onaylı Çekimi Reddet (Süper Admin) -->
+  <VDialog v-model="showForceReject" max-width="480">
+    <VCard>
+      <VCardItem>
+        <VCardTitle class="text-error d-flex align-center gap-2"><VIcon icon="tabler-ban" />Onaylı Çekimi Reddet</VCardTitle>
+        <template #append>
+          <VBtn icon size="small" variant="text" @click="showForceReject = false"><VIcon icon="tabler-x" /></VBtn>
+        </template>
+      </VCardItem>
+      <VDivider />
+      <VCardText>
+        <VAlert type="warning" variant="tonal" density="compact" class="mb-4">
+          Onaylı çekim <strong>{{ forceForm.order_id }}</strong> (#{{ forceForm.id }}) reddedilecek.
+          Müşteriye <strong>callback gönderilmez</strong>. Bu işlem geri alınamaz.
+        </VAlert>
+        <AppTextField
+          v-model="forceForm.reason"
+          label="Ret Sebebi (zorunlu)"
+          placeholder="Örn. hatalı onay, mutabakat düzeltmesi…"
+          density="compact"
+        />
+      </VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="showForceReject = false">İptal</VBtn>
+        <VBtn color="error" prepend-icon="tabler-ban" :loading="forceSaving" @click="submitForceReject">Reddet</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>

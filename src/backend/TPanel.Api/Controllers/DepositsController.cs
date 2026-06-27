@@ -98,6 +98,15 @@ public class DepositsController : AdminControllerBase
         return Result(await _service.RejectAsync(user, body.Id, body.RejectType, ClientIp, ct));
     }
 
+    // Onaylı yatırımı reddet (yalnız Süper Admin, sebep zorunlu, callback YOK)
+    [HttpPost("{id:int}/force-reject")]
+    public async Task<IActionResult> ForceReject(int id, [FromBody] ForceRejectBody body, CancellationToken ct)
+    {
+        var user = await LoadUserAsync(_currentUser, ct);
+        if (user is null) return Unauthorized(new { message = "Unauthenticated." });
+        return Result(await _service.ForceRejectAsync(user, id, body.Reason ?? "", ClientIp, ct));
+    }
+
     [HttpPost("{id:int}/resend-callback")]
     public async Task<IActionResult> ResendCallback(int id, CancellationToken ct)
     {
@@ -193,3 +202,6 @@ public class DepositsController : AdminControllerBase
 public record MoveTeamBody(
     [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId,
     [property: System.Text.Json.Serialization.JsonPropertyName("bank_id")] int? BankId);
+
+public record ForceRejectBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("reason")] string? Reason);
