@@ -1,1 +1,0 @@
-import{_ as t}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{o as n,c as o,d as r}from"./main-DTDcOP-z.js";const a={};function s(c,e){return n(),o("div",null,[...e[0]||(e[0]=[r("h1",null,"wallet-transactions",-1)])])}const i=t(a,[["render",s]]);export{i as default};

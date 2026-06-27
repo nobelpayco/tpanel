@@ -4,7 +4,6 @@ import DashboardTransactionChart from '@/views/dashboard/DashboardTransactionCha
 import DashboardWeeklyOverview from '@/views/dashboard/DashboardWeeklyOverview.vue'
 import DashboardRecentTransactions from '@/views/dashboard/DashboardRecentTransactions.vue'
 import DashboardTeamPerformance from '@/views/dashboard/DashboardTeamPerformance.vue'
-import { GridLayout, GridItem } from 'grid-layout-plus'
 import { setStatsRange, stopStats } from '@/composables/useDashboardStats'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useI18n } from 'vue-i18n'
@@ -31,33 +30,38 @@ const refreshKey = ref(0)
 const applyFilter = () => { refreshKey.value++; setStatsRange(dateFrom.value, dateTo.value) }
 
 // ---- Widget kataloğu ----
+// w = 12 sütunluk gridde genişlik; h = satır birimi (1 birim ≈ 110px)
 const COMPONENTS = { DashboardStatCard, DashboardTransactionChart, DashboardWeeklyOverview, DashboardRecentTransactions, DashboardTeamPerformance }
-// NOT: grid 10 sütunlu (5 stat kartı tek satıra tam otursun diye).
 const WIDGETS = {
-  stat_deposits:    { title: 'Toplam Yatırım',     comp: 'DashboardStatCard', props: { metric: 'deposits' },            minW: 2, minH: 2, defW: 2, defH: 2 },
-  stat_withdrawals: { title: 'Toplam Çekim',        comp: 'DashboardStatCard', props: { metric: 'withdrawals' },         minW: 2, minH: 2, defW: 2, defH: 2 },
-  stat_pending_dep: { title: 'Bekleyen Yatırım',    comp: 'DashboardStatCard', props: { metric: 'pending_deposits' },    minW: 2, minH: 2, defW: 2, defH: 2 },
-  stat_pending_wd:  { title: 'Bekleyen Çekim',      comp: 'DashboardStatCard', props: { metric: 'pending_withdrawals' }, minW: 2, minH: 2, defW: 2, defH: 2 },
-  stat_ibans:       { title: 'Kullanılabilir IBAN', comp: 'DashboardStatCard', props: { metric: 'available_ibans' },     minW: 2, minH: 2, defW: 2, defH: 2 },
-  chart:            { title: 'İşlem Hacmi',         comp: 'DashboardTransactionChart',   minW: 3, minH: 4, defW: 6, defH: 7 },
-  cases:            { title: 'Anlık Kasalar',       comp: 'DashboardWeeklyOverview',     minW: 3, minH: 4, defW: 4, defH: 7 },
-  recent:           { title: 'Son İşlemler',        comp: 'DashboardRecentTransactions', minW: 3, minH: 4, defW: 6, defH: 7 },
-  team_perf:        { title: 'Takım Performansı',   comp: 'DashboardTeamPerformance',    minW: 3, minH: 4, defW: 4, defH: 7, hideForMerchant: true },
+  stat_deposits:    { title: 'Toplam Yatırım',     comp: 'DashboardStatCard', props: { metric: 'deposits' },            w: 3, h: 1 },
+  stat_withdrawals: { title: 'Toplam Çekim',        comp: 'DashboardStatCard', props: { metric: 'withdrawals' },         w: 3, h: 1 },
+  stat_pending_dep: { title: 'Bekleyen Yatırım',    comp: 'DashboardStatCard', props: { metric: 'pending_deposits' },    w: 3, h: 1 },
+  stat_pending_wd:  { title: 'Bekleyen Çekim',      comp: 'DashboardStatCard', props: { metric: 'pending_withdrawals' }, w: 3, h: 1 },
+  stat_ibans:       { title: 'Kullanılabilir IBAN', comp: 'DashboardStatCard', props: { metric: 'available_ibans' },     w: 3, h: 1 },
+  chart:            { title: 'İşlem Hacmi',         comp: 'DashboardTransactionChart',   w: 6, h: 3 },
+  cases:            { title: 'Anlık Kasalar',       comp: 'DashboardWeeklyOverview',     w: 6, h: 3 },
+  recent:           { title: 'Son İşlemler',        comp: 'DashboardRecentTransactions', w: 6, h: 3 },
+  team_perf:        { title: 'Takım Performansı',   comp: 'DashboardTeamPerformance',    w: 6, h: 3, hideForMerchant: true },
 }
+
+// Preset boyutlar
+const WIDTH_PRESETS = [
+  { label: '¼', value: 3 },
+  { label: '⅓', value: 4 },
+  { label: '½', value: 6 },
+  { label: 'Tam', value: 12 },
+]
+const HEIGHT_PRESETS = [
+  { label: 'Kısa', value: 1 },
+  { label: 'Orta', value: 2 },
+  { label: 'Uzun', value: 3 },
+]
 
 const allowedIds = Object.keys(WIDGETS).filter(id => !(isMerchant && WIDGETS[id].hideForMerchant))
 
-const defaultLayout = () => ([
-  { i: 'stat_deposits',    x: 0, y: 0, w: 2, h: 2 },
-  { i: 'stat_withdrawals', x: 2, y: 0, w: 2, h: 2 },
-  { i: 'stat_pending_dep', x: 4, y: 0, w: 2, h: 2 },
-  { i: 'stat_pending_wd',  x: 6, y: 0, w: 2, h: 2 },
-  { i: 'stat_ibans',       x: 8, y: 0, w: 2, h: 2 },
-  { i: 'chart',            x: 0, y: 2, w: 6, h: 7 },
-  { i: 'cases',            x: 6, y: 2, w: 4, h: 7 },
-  { i: 'recent',           x: 0, y: 9, w: 6, h: 7 },
-  { i: 'team_perf',        x: 6, y: 9, w: 4, h: 7 },
-].filter(it => allowedIds.includes(it.i)))
+const defaultLayout = () => Object.keys(WIDGETS)
+  .filter(id => allowedIds.includes(id))
+  .map(id => ({ i: id, w: WIDGETS[id].w, h: WIDGETS[id].h }))
 
 // ---- Durum ----
 const editMode = ref(false)
@@ -66,6 +70,9 @@ const savedSnapshot = ref('[]')
 const saving = ref(false)
 
 const availableToAdd = computed(() => allowedIds.filter(id => !layout.value.some(it => it.i === id)))
+
+const clampW = (w) => (WIDTH_PRESETS.some(p => p.value === w) ? w : (w >= 12 ? 12 : w >= 6 ? 6 : w >= 4 ? 4 : 3))
+const clampH = (h) => (h >= 3 ? 3 : h >= 2 ? 2 : 1)
 
 const loadLayout = async () => {
   let result = null
@@ -78,7 +85,7 @@ const loadLayout = async () => {
         const parsed = JSON.parse(d.layout)
         if (Array.isArray(parsed)) {
           const valid = parsed.filter(it => it && WIDGETS[it.i] && allowedIds.includes(it.i))
-          if (valid.length) result = valid.map(it => ({ i: it.i, x: +it.x || 0, y: +it.y || 0, w: +it.w || WIDGETS[it.i].defW, h: +it.h || WIDGETS[it.i].defH }))
+          if (valid.length) result = valid.map(it => ({ i: it.i, w: clampW(+it.w || WIDGETS[it.i].w), h: clampH(+it.h || WIDGETS[it.i].h) }))
         }
       }
     }
@@ -87,12 +94,10 @@ const loadLayout = async () => {
   savedSnapshot.value = JSON.stringify(layout.value)
 }
 
-const addWidget = (id) => {
-  if (layout.value.some(it => it.i === id)) return
-  const maxY = layout.value.reduce((m, it) => Math.max(m, it.y + it.h), 0)
-  layout.value.push({ i: id, x: 0, y: maxY, w: WIDGETS[id].defW, h: WIDGETS[id].defH })
-}
+const addWidget = (id) => { if (!layout.value.some(it => it.i === id)) layout.value.push({ i: id, w: WIDGETS[id].w, h: WIDGETS[id].h }) }
 const removeWidget = (id) => { layout.value = layout.value.filter(it => it.i !== id) }
+const setWidth = (item, w) => { item.w = w }
+const setHeight = (item, h) => { item.h = h }
 
 const startEdit = () => { savedSnapshot.value = JSON.stringify(layout.value); editMode.value = true }
 const cancelEdit = () => { layout.value = JSON.parse(savedSnapshot.value); editMode.value = false }
@@ -102,7 +107,7 @@ const saveLayout = async () => {
   saving.value = true
   try {
     const token = localStorage.getItem('token')
-    const payload = layout.value.map(it => ({ i: it.i, x: it.x, y: it.y, w: it.w, h: it.h }))
+    const payload = layout.value.map(it => ({ i: it.i, w: it.w, h: it.h }))
     const res = await fetch('/api/dashboard/layout', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -112,6 +117,19 @@ const saveLayout = async () => {
     else snackbar.error('Kaydedilemedi.')
   } catch { snackbar.error('Sunucu hatası.') } finally { saving.value = false }
 }
+
+// ---- Sürükle-bırak ile sırala (native DnD) ----
+const dragIndex = ref(null)
+const onDragStart = (idx) => { dragIndex.value = idx }
+const onDragEnter = (idx) => {
+  if (dragIndex.value === null || dragIndex.value === idx) return
+  const arr = [...layout.value]
+  const [moved] = arr.splice(dragIndex.value, 1)
+  arr.splice(idx, 0, moved)
+  layout.value = arr
+  dragIndex.value = idx
+}
+const onDragEnd = () => { dragIndex.value = null }
 
 onMounted(() => { loadLayout(); setStatsRange(dateFrom.value, dateTo.value) })
 onUnmounted(() => stopStats())
@@ -135,7 +153,6 @@ onUnmounted(() => stopStats())
 
         <VSpacer />
 
-        <!-- Düzenleme kontrolleri -->
         <template v-if="!editMode">
           <VBtn variant="tonal" color="secondary" prepend-icon="tabler-layout-dashboard" @click="startEdit">Düzenle</VBtn>
         </template>
@@ -158,75 +175,93 @@ onUnmounted(() => stopStats())
     </VCard>
 
     <div v-if="editMode" class="text-caption text-medium-emphasis mb-2">
-      <VIcon icon="tabler-info-circle" size="14" /> Kutucukları taşımak için <strong>taşı simgesinden</strong> sürükleyin, boyutlandırmak için sağ-alt köşeden çekin.
+      <VIcon icon="tabler-info-circle" size="14" /> Kutucukları <strong>sürükleyerek sıralayın</strong>; boyutu değiştirmek için kutucuktaki <strong>genişlik/yükseklik</strong> düğmelerini kullanın. Diğer kutucuklar otomatik yerleşir.
     </div>
 
-    <GridLayout
-      v-model:layout="layout"
-      :col-num="10"
-      :row-height="50"
-      :margin="[10, 10]"
-      :is-draggable="editMode"
-      :is-resizable="editMode"
-      :vertical-compact="true"
-      :responsive="false"
-      :use-css-transforms="true"
-    >
-      <GridItem
-        v-for="item in layout"
+    <div class="dash-grid">
+      <div
+        v-for="(item, idx) in layout"
         :key="item.i"
-        :x="item.x"
-        :y="item.y"
-        :w="item.w"
-        :h="item.h"
-        :i="item.i"
-        :min-w="WIDGETS[item.i].minW"
-        :min-h="WIDGETS[item.i].minH"
-        drag-allow-from=".widget-handle"
-        class="dash-grid-item"
-        :class="{ 'edit-on': editMode }"
+        class="dash-cell"
+        :class="{ 'edit-on': editMode, 'dragging': dragIndex === idx }"
+        :style="{ '--w': item.w, '--h': item.h }"
+        :draggable="editMode"
+        @dragstart="onDragStart(idx)"
+        @dragenter.prevent="onDragEnter(idx)"
+        @dragover.prevent
+        @dragend="onDragEnd"
       >
-        <div class="widget-box">
-          <div v-if="editMode" class="widget-toolbar">
-            <VIcon icon="tabler-arrows-move" size="16" class="widget-handle" />
-            <span class="text-caption font-weight-medium ms-1 text-truncate">{{ WIDGETS[item.i].title }}</span>
-            <VSpacer />
-            <VBtn icon size="x-small" variant="text" color="error" title="Kaldır" @click="removeWidget(item.i)">
-              <VIcon icon="tabler-x" size="16" />
-            </VBtn>
+        <div v-if="editMode" class="widget-toolbar">
+          <VIcon icon="tabler-arrows-move" size="16" />
+          <span class="text-caption font-weight-medium ms-1 text-truncate flex-grow-1">{{ WIDGETS[item.i].title }}</span>
+          <!-- Genişlik -->
+          <div class="preset-group" draggable="false" @dragstart.stop.prevent>
+            <VBtn
+              v-for="p in WIDTH_PRESETS" :key="'w'+p.value"
+              size="x-small" variant="text" :color="item.w === p.value ? 'primary' : undefined"
+              class="preset-btn" draggable="false"
+              @click.stop="setWidth(item, p.value)"
+            >{{ p.label }}</VBtn>
           </div>
-          <div class="widget-content">
-            <component
-              :is="COMPONENTS[WIDGETS[item.i].comp]"
-              v-bind="WIDGETS[item.i].props || {}"
-              :date-from="dateFrom"
-              :date-to="dateTo"
-              :key="item.i + '-' + refreshKey"
-            />
+          <span class="preset-sep">|</span>
+          <!-- Yükseklik -->
+          <div class="preset-group" draggable="false" @dragstart.stop.prevent>
+            <VBtn
+              v-for="p in HEIGHT_PRESETS" :key="'h'+p.value"
+              size="x-small" variant="text" :color="item.h === p.value ? 'primary' : undefined"
+              class="preset-btn" draggable="false"
+              @click.stop="setHeight(item, p.value)"
+            >{{ p.label }}</VBtn>
           </div>
+          <VBtn icon size="x-small" variant="text" color="error" title="Kaldır" draggable="false" @click.stop="removeWidget(item.i)">
+            <VIcon icon="tabler-x" size="16" />
+          </VBtn>
         </div>
-      </GridItem>
-    </GridLayout>
+        <div class="widget-content">
+          <component
+            :is="COMPONENTS[WIDGETS[item.i].comp]"
+            v-bind="WIDGETS[item.i].props || {}"
+            :date-from="dateFrom"
+            :date-to="dateTo"
+            :key="item.i + '-' + refreshKey"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.widget-box { block-size: 100%; position: relative; }
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: 110px;
+  grid-auto-flow: row dense;
+  gap: 12px;
+}
+.dash-cell {
+  grid-column: span var(--w);
+  grid-row: span var(--h);
+  position: relative;
+  min-inline-size: 0;
+}
+.dash-cell.edit-on { outline: 2px dashed rgba(var(--v-theme-primary), 0.45); outline-offset: 2px; border-radius: 8px; cursor: move; }
+.dash-cell.dragging { opacity: 0.5; }
 .widget-toolbar {
   position: absolute; inset-block-start: 0; inset-inline: 0;
-  display: flex; align-items: center; gap: 2px;
-  block-size: 22px; padding: 0 4px 0 6px;
-  background: rgba(var(--v-theme-surface), 0.9);
+  display: flex; align-items: center; gap: 1px;
+  block-size: 24px; padding: 0 4px 0 6px;
+  background: rgba(var(--v-theme-surface), 0.92);
   border-radius: 8px 8px 0 0;
   z-index: 5;
 }
-.widget-handle { cursor: move; }
+.preset-group { display: inline-flex; }
+.preset-btn { min-inline-size: 22px !important; padding: 0 4px !important; }
+.preset-sep { opacity: 0.4; margin: 0 2px; }
 .widget-content { block-size: 100%; overflow: auto; }
 .widget-content :deep(.v-card) { block-size: 100%; }
-.edit-on {
-  outline: 2px dashed rgba(var(--v-theme-primary), 0.45);
-  outline-offset: 2px;
-  border-radius: 8px;
+
+@media (max-width: 600px) {
+  .dash-cell { grid-column: 1 / -1 !important; }
 }
-.dash-grid-item :deep(.vgl-item__resizer) { z-index: 6; }
 </style>
