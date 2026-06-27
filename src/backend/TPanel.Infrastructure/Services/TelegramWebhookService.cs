@@ -18,6 +18,7 @@ public class TelegramWebhookService : ITelegramWebhookService
     private static readonly Regex KasaCmd = new(@"@\w+\s+kasa\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex IbanCmd = new(@"#iban\b[:\s]*([A-Za-z0-9 ]{15,40})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex HesapCmd = new(@"#hesap\b[:\s]*([A-Za-z0-9 ]{15,40})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex ListeCmd = new(@"^/liste(@\w+)?\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Callback = new(@"^(risk_block|risk_dismiss):(\d+)$", RegexOptions.Compiled);
     private static readonly string[] AllowedMime = { "image/jpeg", "image/png", "image/webp", "application/pdf" };
 
@@ -68,6 +69,15 @@ public class TelegramWebhookService : ITelegramWebhookService
         if (chatId is null || isBot || text == "") return;
 
         if (FinTag.IsMatch(text)) { await HandleFinTag(m, chatId.Value.ToString(), text, messageId, ct); return; }
+
+        // /liste — yalnızca başlığında "DESTEK" geçen kanallarda; aktif banka hesaplarını listele (salt-okuma)
+        if (ListeCmd.IsMatch(text))
+        {
+            var chatTitle = chat is null ? null : Str(chat.Value, "title");
+            if (chatTitle is not null && chatTitle.Contains("DESTEK", StringComparison.OrdinalIgnoreCase))
+                await HandleListeCmd(chatId.Value.ToString(), messageId, ct);
+            return;
+        }
 
         // #hesap <IBAN> — eklenmiş banka hesaplarında (aktif+pasif) arar, varsa hesap bilgisini döner (salt-okuma)
         var hesapMatch = HesapCmd.Match(text);
@@ -248,6 +258,39 @@ public class TelegramWebhookService : ITelegramWebhookService
             sb.Append($"📊 {durum}\n");
         }
         await _telegram.SendTextAsync(chatId, sb.ToString().TrimEnd(), "HTML", messageId, ct);
+    }
+
+    // /liste — aktif banka hesaplarını (status=1) takım bazında listeler.
+    private async Task HandleListeCmd(string chatId, long? messageId, CancellationToken ct)
+    {
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        var rows = (await c.QueryAsync(@"
+            SELECT ba.account_holder, ba.account_iban, b.name AS bank_name, t.name AS team_name, t.status AS team_status
+            FROM bankAccounts ba
+            LEFT JOIN banks b ON ba.bank_id = b.id
+            LEFT JOIN teams t ON ba.team_id = t.id
+            WHERE ba.status = 1
+            ORDER BY t.name, ba.account_holder")).ToList();
+
+        if (rows.Count == 0) { await _telegram.SendTextAsync(chatId, "ℹ️ Aktif banka hesabı bulunmuyor.", "HTML", messageId, ct); return; }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"🏦 <b>Aktif Banka Hesapları</b> ({rows.Count})\n");
+        string? curTeam = null;
+        foreach (var r in rows)
+        {
+            var tn = (string?)r.team_name ?? "(takımsız)";
+            if (tn != curTeam)
+            {
+                curTeam = tn;
+                var pasif = r.team_status is not null && (int)r.team_status != 1 ? " <i>(pasif takım)</i>" : "";
+                sb.Append($"\n<b>{Esc(tn)}</b>{pasif}\n");
+            }
+            sb.Append($"• {Esc((string?)r.account_holder ?? "-")} — {Esc((string?)r.bank_name ?? "-")}\n<code>{Esc((string?)r.account_iban ?? "-")}</code>\n");
+        }
+        var msg = sb.ToString().TrimEnd();
+        if (msg.Length > 4000) msg = msg.Substring(0, 3900) + "\n…(liste uzun, kısaltıldı)";
+        await _telegram.SendTextAsync(chatId, msg, "HTML", messageId, ct);
     }
 
     private async Task<string> BuildCashReport(IDbConnection c, dynamic team)
