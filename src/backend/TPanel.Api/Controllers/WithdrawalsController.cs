@@ -86,12 +86,33 @@ public class WithdrawalsController : AdminControllerBase
         return Result(await _service.RejectAsync(user!, body.Id, body.RejectType, ClientIp, ct));
     }
 
+    // Onaylı çekimi reddet (yalnız Süper Admin, sebep zorunlu, callback YOK)
+    [HttpPost("{id:int}/force-reject")]
+    public async Task<IActionResult> ForceReject(int id, [FromBody] ForceRejectBody body, CancellationToken ct)
+    {
+        var (user, err) = await AuthAsync(ct); if (err is not null) return err;
+        return Result(await _service.ForceRejectAsync(user!, id, body.Reason ?? "", ClientIp, ct));
+    }
+
     [HttpPost("bulk-assign")]
     public async Task<IActionResult> BulkAssign([FromBody] BulkAssignBody body, CancellationToken ct)
     {
         var (user, err) = await AuthAsync(ct); if (err is not null) return err;
         if (body.Ids is null || body.TeamId is null) return StatusCode(422, new { message = "ids ve team_id zorunludur." });
         return Result(await _service.BulkAssignAsync(user!, body.Ids, body.TeamId.Value, ClientIp, ct));
+    }
+
+    // ---- Bekleyen çekimi başka takıma taşı (yalnızca Super/Sub Admin) ----
+    [HttpPost("{id:int}/move-team")]
+    public async Task<IActionResult> MoveTeam(int id, [FromBody] MoveWithdrawTeamBody body, [FromServices] ITransactionAdminStore store,
+        [FromServices] TPanel.Application.Features.Audit.IAuditContext audit, CancellationToken ct)
+    {
+        var (user, err) = await AuthAsync(ct); if (err is not null) return err;
+        if (!user!.IsAdmin) return StatusCode(403, new { message = "Yetkisiz." });
+        if (body.TeamId is null or <= 0) return StatusCode(422, new { message = "Takım seçilmeli." });
+        var (ok, msg) = await store.MoveWithdrawTeamAsync(id, body.TeamId.Value, user.Id, ct);
+        if (ok) audit.Set($"Çekim başka takıma taşındı — #{id} → takım #{body.TeamId}", "invest", id.ToString(), null, new { team_id = body.TeamId });
+        return StatusCode(ok ? 200 : 422, new { message = msg });
     }
 
     [HttpPost("notify-missing-receipts")]
@@ -260,3 +281,6 @@ public class WithdrawalsController : AdminControllerBase
         "jpg" => "image/jpeg", "png" => "image/png", "webp" => "image/webp", "pdf" => "application/pdf", _ => "application/octet-stream",
     };
 }
+
+public record MoveWithdrawTeamBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId);

@@ -16,6 +16,8 @@ public interface IWithdrawAdminService
     Task<ApiResult> ReleaseAsync(User user, int id, string ip, CancellationToken ct = default);
     Task<ApiResult> ApproveAsync(User user, int id, string ip, CancellationToken ct = default);
     Task<ApiResult> RejectAsync(User user, int id, int rejectType, string ip, CancellationToken ct = default);
+    /// <summary>Onaylı (status=3) çekimi reddet — yalnızca Süper Admin, sebep zorunlu, CALLBACK GÖNDERİLMEZ.</summary>
+    Task<ApiResult> ForceRejectAsync(User user, int id, string reason, string ip, CancellationToken ct = default);
     Task<ApiResult> BulkAssignAsync(User user, IReadOnlyList<int> ids, int teamId, string ip, CancellationToken ct = default);
     Task<ApiResult> ReceiptsAsync(User user, int id, CancellationToken ct = default);
     Task<ApiResult> UploadReceiptAsync(User user, int id, byte[] binary, string originalName, string mime, string ext, string ip, CancellationToken ct = default);
@@ -194,6 +196,30 @@ public class WithdrawAdminService : IWithdrawAdminService
         return ApiResult.Msg(200, "Çekim onaylandı.");
     }
 
+    public async Task<ApiResult> ForceRejectAsync(User user, int id, string reason, string ip, CancellationToken ct = default)
+    {
+        if (!user.IsSuperAdmin) return ApiResult.Msg(403, "Bu işlem yalnızca Süper Admin yetkisindedir.");
+        if (string.IsNullOrWhiteSpace(reason)) return ApiResult.Msg(422, "Ret sebebi zorunludur.");
+
+        var invest = await _store.GetInvestRawAsync(id, ct);
+        if (invest is null) return ApiResult.Msg(404, "İşlem bulunamadı.");
+        if (invest.Type != "2") return ApiResult.Msg(422, "Bu bir çekim işlemi değil.");
+        if (invest.Status != "3") return ApiResult.Msg(422, "Yalnızca onaylı işlemler bu şekilde reddedilebilir.");
+
+        await _store.UpdateInvestAsync(id, new Dictionary<string, object?>
+        {
+            ["status"] = 4, ["agent_id"] = user.Id, ["finalize_date"] = _clock.Now,
+        }, ct);
+        await _store.InsertInvestLogAsync(id, user.Id, ip, 4, $"Onaylı çekim reddedildi (Süper Admin) — Sebep: {reason}", ct);
+        // CALLBACK GÖNDERİLMEZ (kasıtlı)
+        if (invest.TeamId is not null) await _banks.EnforceMaxCaseAsync(new[] { invest.TeamId.Value }, ct);
+
+        _audit.Set($"Onaylı çekim reddedildi — #{id} (₺{invest.Amount:N2}) — Sebep: {reason}", "invest", id.ToString(),
+            new { status = "3" }, new { status = "4", reason, callback = "gönderilmedi" });
+
+        return ApiResult.Msg(200, "Çekim reddedildi (callback gönderilmedi).");
+    }
+
     public async Task<ApiResult> RejectAsync(User user, int id, int rejectType, string ip, CancellationToken ct = default)
     {
         if (rejectType is not (1 or 2)) return ApiResult.Msg(422, "Geçersiz red tipi.");
@@ -224,8 +250,8 @@ public class WithdrawAdminService : IWithdrawAdminService
         if (ids.Count == 0) return ApiResult.Msg(422, "İşlem listesi boş.");
         if (!user.IsAdmin) return ApiResult.Msg(403, "Toplu atama için admin yetkisi gerekir.");
 
-        var team = await _store.GetTeamAsync(teamId, requireActive: true, ct);
-        if (team is null) return ApiResult.Msg(404, "Takım bulunamadı veya aktif değil.");
+        var team = await _store.GetTeamAsync(teamId, requireActive: false, ct);
+        if (team is null) return ApiResult.Msg(404, "Takım bulunamadı.");
 
         var firstUser = await _store.GetFirstActiveTeamUserAsync(teamId, ct);
         if (firstUser is null) return ApiResult.Msg(422, "Bu takımda atanabilecek aktif kullanıcı yok.");

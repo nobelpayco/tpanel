@@ -385,6 +385,34 @@ const allStatusLabel = { 0: 'Havuzda', 1: 'Beklemede', 2: 'İşlemde', 3: 'Onayl
 const allStatusColor = { 0: 'secondary', 1: 'warning', 2: 'info', 3: 'success', 4: 'error' }
 const historyStatusLabel = (h) => allStatusLabel[h.status] || '-'
 const historyStatusColor = (h) => allStatusColor[h.status] || 'default'
+
+// ---- Bekleyen çekimi başka takıma taşı (Super/Sub Admin; pasif takım dahil) ----
+const showMoveDialog = ref(false)
+const moveForm = ref({ id: null, order_id: '', team_id: null })
+const moveTeams = ref([])
+const moveSaving = ref(false)
+const openMoveDialog = async (w) => {
+  moveForm.value = { id: w.id, order_id: w.order_id, team_id: null }
+  moveTeams.value = []
+  showMoveDialog.value = true
+  try {
+    const res = await fetch('/api/withdrawals/manual/meta', { headers })
+    if (res.ok) { const d = await res.json(); moveTeams.value = d.teams || [] }
+    else snackbar.error('Takım listesi yüklenemedi.')
+  } catch { snackbar.error('Sunucu hatası.') }
+}
+const submitMove = async () => {
+  if (!moveForm.value.team_id) { snackbar.error('Hedef takım seçin.'); return }
+  moveSaving.value = true
+  try {
+    const res = await fetch(`/api/withdrawals/${moveForm.value.id}/move-team`, {
+      method: 'POST', headers, body: JSON.stringify({ team_id: moveForm.value.team_id }),
+    })
+    const data = await res.json()
+    if (res.ok) { showMoveDialog.value = false; snackbar.success(data.message || 'Çekim taşındı.'); fetchData() }
+    else { snackbar.error(data.message || 'Taşınamadı.') }
+  } catch { snackbar.error('Sunucu hatası.') } finally { moveSaving.value = false }
+}
 </script>
 
 <template>
@@ -510,6 +538,7 @@ const historyStatusColor = (h) => allStatusColor[h.status] || 'default'
                     <VBtn color="info" size="small" variant="outlined" min-width="80" density="comfortable" @click="openAction(w)">Detay</VBtn>
                   </div>
                 </div>
+                <VBtn v-if="isAdmin && (w.status === 1 || w.status === 2)" color="warning" size="x-small" variant="text" prepend-icon="tabler-arrows-exchange-2" title="Başka takıma taşı" class="mt-1" @click="openMoveDialog(w)">Taşı</VBtn>
               </td>
             </tr>
             <tr v-if="!loading && withdrawals.length === 0">
@@ -817,6 +846,36 @@ const historyStatusColor = (h) => allStatusColor[h.status] || 'default'
         <VBtn color="primary" :loading="assigning" :disabled="!selectedTeamId" @click="confirmAssign">
           {{ selectedIds.length }} Çekimi Ata
         </VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
+
+  <!-- Çekimi Başka Takıma Taşı -->
+  <VDialog v-model="showMoveDialog" max-width="480">
+    <VCard>
+      <VCardItem>
+        <VCardTitle>Çekimi Başka Takıma Taşı</VCardTitle>
+        <template #append>
+          <VBtn icon size="small" variant="text" @click="showMoveDialog = false"><VIcon icon="tabler-x" /></VBtn>
+        </template>
+      </VCardItem>
+      <VDivider />
+      <VCardText>
+        <div class="text-body-2 text-medium-emphasis mb-4">
+          Çekim: <strong>{{ moveForm.order_id }}</strong> (#{{ moveForm.id }}) — yalnızca bekleyen çekimler. Pasif (maks. kasa) takımlar da seçilebilir.
+        </div>
+        <VAutocomplete
+          v-model="moveForm.team_id"
+          :items="moveTeams.map(t => ({ title: t.status === 1 ? t.name : `${t.name} (pasif)`, value: t.id }))"
+          label="Hedef Takım"
+          prepend-inner-icon="tabler-users-group"
+          density="compact"
+        />
+      </VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="showMoveDialog = false">İptal</VBtn>
+        <VBtn color="primary" prepend-icon="tabler-arrows-exchange-2" :loading="moveSaving" @click="submitMove">Taşı</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>
