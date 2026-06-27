@@ -17,6 +17,7 @@ public class TelegramWebhookService : ITelegramWebhookService
     private static readonly Regex WithdrawId = new(@"\bW\d+\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex KasaCmd = new(@"@\w+\s+kasa\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex IbanCmd = new(@"#iban\b[:\s]*([A-Za-z0-9 ]{15,40})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex HesapCmd = new(@"#hesap\b[:\s]*([A-Za-z0-9 ]{15,40})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Callback = new(@"^(risk_block|risk_dismiss):(\d+)$", RegexOptions.Compiled);
     private static readonly string[] AllowedMime = { "image/jpeg", "image/png", "image/webp", "application/pdf" };
 
@@ -67,6 +68,10 @@ public class TelegramWebhookService : ITelegramWebhookService
         if (chatId is null || isBot || text == "") return;
 
         if (FinTag.IsMatch(text)) { await HandleFinTag(m, chatId.Value.ToString(), text, messageId, ct); return; }
+
+        // #hesap <IBAN> — eklenmiş banka hesaplarında (aktif+pasif) arar, varsa hesap bilgisini döner (salt-okuma)
+        var hesapMatch = HesapCmd.Match(text);
+        if (hesapMatch.Success) { await HandleHesapCmd(chatId.Value.ToString(), hesapMatch.Groups[1].Value, messageId, ct); return; }
 
         // #iban <IBAN> — her grupta çalışır, aktif+pasif tüm hesaplarda sorgular (salt-okuma)
         var ibanMatch = IbanCmd.Match(text);
@@ -213,6 +218,36 @@ public class TelegramWebhookService : ITelegramWebhookService
             ? "⛔ Bu iban pasif, henüz hiç işlem almamıştır."
             : $"⛔ Bu iban pasif. En son <b>{lastTx:dd.MM.yyyy}</b> tarihinde işlem almıştır.";
         await _telegram.SendTextAsync(chatId, msg, "HTML", messageId, ct);
+    }
+
+    // #hesap <IBAN> — eklenmiş banka hesaplarında (aktif/pasif fark etmez) arar, varsa hesabı bildirir.
+    private async Task HandleHesapCmd(string chatId, string ibanRaw, long? messageId, CancellationToken ct)
+    {
+        var iban = Regex.Replace(ibanRaw ?? "", @"\s", "").ToUpperInvariant();
+        if (iban.Length < 15) { await _telegram.SendTextAsync(chatId, "❓ Geçerli bir IBAN girin. Format: <code>#hesap TR....</code>", "HTML", messageId, ct); return; }
+
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        var rows = (await c.QueryAsync(@"
+            SELECT ba.account_holder, ba.account_iban, ba.status, b.name AS bank_name, t.name AS team_name
+            FROM bankAccounts ba
+            LEFT JOIN banks b ON ba.bank_id = b.id
+            LEFT JOIN teams t ON ba.team_id = t.id
+            WHERE REPLACE(UPPER(ba.account_iban),' ','')=@iban
+            ORDER BY ba.status DESC", new { iban })).ToList();
+
+        if (rows.Count == 0) { await _telegram.SendTextAsync(chatId, "❌ Bu IBAN sistemde kayıtlı <b>değil</b>.", "HTML", messageId, ct); return; }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append(rows.Count == 1 ? "✅ Bu hesap sistemde <b>kayıtlı</b>:\n" : $"✅ Bu IBAN <b>{rows.Count}</b> kayıtta bulundu:\n");
+        foreach (var r in rows)
+        {
+            var durum = (int)r.status == 1 ? "🟢 Aktif" : "🔴 Pasif";
+            sb.Append($"\n👤 <b>{Esc((string?)r.account_holder ?? "-")}</b>\n");
+            sb.Append($"🏦 {Esc((string?)r.bank_name ?? "-")}\n");
+            sb.Append($"👥 Takım: {Esc((string?)r.team_name ?? "-")}\n");
+            sb.Append($"📊 {durum}\n");
+        }
+        await _telegram.SendTextAsync(chatId, sb.ToString().TrimEnd(), "HTML", messageId, ct);
     }
 
     private async Task<string> BuildCashReport(IDbConnection c, dynamic team)
