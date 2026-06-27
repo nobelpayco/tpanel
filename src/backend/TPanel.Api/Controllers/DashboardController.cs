@@ -42,7 +42,17 @@ public class DashboardController : AdminControllerBase
 
     [HttpGet("player-transactions/{playerId}")]
     public async Task<IActionResult> PlayerTx(string playerId, CancellationToken ct) { var (u, e) = await AuthAsync(ct); if (e is not null) return e; var page = int.TryParse(Request.Query["page"], out var pg) ? pg : 1; return Result(await _s.PlayerTransactionsAsync(u!, playerId, page, ct)); }
+
+    // Kullanıcıya özel dashboard düzeni
+    [HttpGet("layout")]
+    public async Task<IActionResult> GetLayout(CancellationToken ct) { var (u, e) = await AuthAsync(ct); if (e is not null) return e; return Result(await _s.LayoutAsync(u!, ct)); }
+
+    [HttpPut("layout")]
+    public async Task<IActionResult> SaveLayout([FromBody] DashboardLayoutBody body, CancellationToken ct) { var (u, e) = await AuthAsync(ct); if (e is not null) return e; return Result(await _s.SaveLayoutAsync(u!, body.Layout, ct)); }
 }
+
+public record DashboardLayoutBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("layout")] string? Layout);
 
 [ApiController]
 [Authorize]

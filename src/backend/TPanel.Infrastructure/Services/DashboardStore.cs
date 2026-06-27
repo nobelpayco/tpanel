@@ -403,4 +403,16 @@ public class DashboardStore : IDashboardStore
     }
     private static System.Text.Json.JsonElement? ParseJson(string? j) { if (string.IsNullOrEmpty(j)) return null; try { return System.Text.Json.JsonDocument.Parse(j).RootElement.Clone(); } catch { return null; } }
     private static double D(System.Text.Json.JsonElement? e, string k) => e is not null && e.Value.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number ? v.GetDouble() : 0;
+
+    public async Task<string?> GetLayoutAsync(int userId, CancellationToken ct = default)
+    {
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        return await c.ExecuteScalarAsync<string?>("SELECT dashboard_layout FROM users WHERE id=@id", new { id = userId });
+    }
+
+    public async Task SaveLayoutAsync(int userId, string? layoutJson, CancellationToken ct = default)
+    {
+        using var c = await _factory.CreateOpenConnectionAsync(ct);
+        await c.ExecuteAsync("UPDATE users SET dashboard_layout=@l WHERE id=@id", new { l = layoutJson, id = userId });
+    }
 }
