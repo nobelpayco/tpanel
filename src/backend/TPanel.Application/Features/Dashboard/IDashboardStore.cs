@@ -14,4 +14,8 @@ public interface IDashboardStore
     Task<object?> TeamDetailAsync(int teamId, string from, string to, CancellationToken ct = default);
     Task<object> PlayerTransactionsAsync(QueryScope scope, string playerId, int page, CancellationToken ct = default);
     Task<object> PlayerStatsAsync(QueryScope scope, string playerId, CancellationToken ct = default);
+
+    // Kullanıcıya özel dashboard düzeni (JSON). Boşsa null → frontend varsayılanı uygular.
+    Task<string?> GetLayoutAsync(int userId, CancellationToken ct = default);
+    Task SaveLayoutAsync(int userId, string? layoutJson, CancellationToken ct = default);
 }

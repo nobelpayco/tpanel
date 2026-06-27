@@ -15,6 +15,8 @@ public interface IDashboardService
     Task<ApiResult> TeamDetailAsync(User u, int teamId, string from, string to, CancellationToken ct = default);
     Task<ApiResult> PlayerTransactionsAsync(User u, string playerId, int page, CancellationToken ct = default);
     Task<ApiResult> PlayerStatsAsync(User u, string playerId, CancellationToken ct = default);
+    Task<ApiResult> LayoutAsync(User u, CancellationToken ct = default);
+    Task<ApiResult> SaveLayoutAsync(User u, string? layoutJson, CancellationToken ct = default);
 }
 
 public class DashboardService : IDashboardService
@@ -38,6 +40,11 @@ public class DashboardService : IDashboardService
         }
         return QueryScope.Global;
     }
+
+    public async Task<ApiResult> LayoutAsync(User u, CancellationToken ct = default)
+        => ApiResult.Ok(new { layout = await _store.GetLayoutAsync(u.Id, ct) });
+    public async Task<ApiResult> SaveLayoutAsync(User u, string? layoutJson, CancellationToken ct = default)
+    { await _store.SaveLayoutAsync(u.Id, layoutJson, ct); return ApiResult.Msg(200, "Düzen kaydedildi."); }
 
     public async Task<ApiResult> WidgetAsync(CancellationToken ct = default) => ApiResult.Ok(await _store.WidgetAsync(ct));
     public async Task<ApiResult> StatsAsync(User u, string from, string to, CancellationToken ct = default)
