@@ -454,9 +454,9 @@ public class TransactionAdminStore : ITransactionAdminStore
         if (dep is null) return (false, "Yatırım bulunamadı.");
         if (Convert.ToString((object)dep.type) != "1" || Convert.ToString((object)dep.status) != "1")
             return (false, "Yalnızca bekleyen yatırımlar taşınabilir.");
-        // IBAN seçilen takıma ait + hesap/takım aktif mi
+        // IBAN seçilen takıma ait + hesap aktif mi (takım PASİF olabilir — maxCase ile pasife alınmış takıma da taşınabilsin)
         var bankOk = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM bankAccounts ba JOIN teams t ON ba.team_id=t.id WHERE ba.id=@bid AND ba.team_id=@tid AND ba.status=1 AND t.status=1",
+            "SELECT COUNT(*) FROM bankAccounts ba JOIN teams t ON ba.team_id=t.id WHERE ba.id=@bid AND ba.team_id=@tid AND ba.status=1 AND t.status<>0",
             new { bid = bankId, tid = teamId });
         if (bankOk == 0) return (false, "Seçilen IBAN bu takıma ait veya aktif değil.");
 
@@ -467,6 +467,25 @@ public class TransactionAdminStore : ITransactionAdminStore
             "INSERT INTO investLog (investID, userID, ip, status, createdAt, detail) VALUES (@iid,@uid,'',@st,@at,@detail)",
             new { iid = id, uid = actorUserId, st = "1", at = _clock.Now, detail = $"Takım taşındı: #{oldTeam} → #{teamId} (IBAN #{bankId})" });
         return (true, "Yatırım yeni takıma taşındı.");
+    }
+
+    public async Task<(bool ok, string message)> MoveWithdrawTeamAsync(int id, int teamId, int actorUserId, CancellationToken ct = default)
+    {
+        using var conn = await _factory.CreateOpenConnectionAsync(ct);
+        var w = await conn.QueryFirstOrDefaultAsync("SELECT id, type, status, team_id FROM invest WHERE id=@id", new { id });
+        if (w is null) return (false, "Çekim bulunamadı.");
+        if (Convert.ToString((object)w.type) != "2" || Convert.ToString((object)w.status) is not ("1" or "2"))
+            return (false, "Yalnızca bekleyen çekimler taşınabilir.");
+        // Hedef takım var + devre dışı değil (PASİF olabilir)
+        var teamOk = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM teams WHERE id=@tid AND status<>0", new { tid = teamId });
+        if (teamOk == 0) return (false, "Hedef takım bulunamadı.");
+
+        var oldTeam = w.team_id is null ? (int?)null : Convert.ToInt32((object)w.team_id);
+        await conn.ExecuteAsync("UPDATE invest SET team_id=@tid, agent_id=NULL WHERE id=@id", new { tid = teamId, id });
+        await conn.ExecuteAsync(
+            "INSERT INTO investLog (investID, userID, ip, status, createdAt, detail) VALUES (@iid,@uid,'',@st,@at,@detail)",
+            new { iid = id, uid = actorUserId, st = Convert.ToString((object)w.status), at = _clock.Now, detail = $"Çekim takım taşındı: #{oldTeam} → #{teamId}" });
+        return (true, "Çekim yeni takıma taşındı.");
     }
 
     public async Task<IReadOnlyList<MissingReceiptRow>> GetMissingReceiptsAsync(int teamId, DateTime enabledAt, CancellationToken ct = default)

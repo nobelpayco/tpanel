@@ -224,8 +224,8 @@ public class WithdrawAdminService : IWithdrawAdminService
         if (ids.Count == 0) return ApiResult.Msg(422, "İşlem listesi boş.");
         if (!user.IsAdmin) return ApiResult.Msg(403, "Toplu atama için admin yetkisi gerekir.");
 
-        var team = await _store.GetTeamAsync(teamId, requireActive: true, ct);
-        if (team is null) return ApiResult.Msg(404, "Takım bulunamadı veya aktif değil.");
+        var team = await _store.GetTeamAsync(teamId, requireActive: false, ct);
+        if (team is null) return ApiResult.Msg(404, "Takım bulunamadı.");
 
         var firstUser = await _store.GetFirstActiveTeamUserAsync(teamId, ct);
         if (firstUser is null) return ApiResult.Msg(422, "Bu takımda atanabilecek aktif kullanıcı yok.");
