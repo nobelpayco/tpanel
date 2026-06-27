@@ -1,1 +1,0 @@
-import{_ as t}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{o,c as r,d as s}from"./main-DoCsIHO6.js";const l={};function n(a,e){return o(),r("div",null,[...e[0]||(e[0]=[s("h1",null,"wallets",-1)])])}const _=t(l,[["render",n]]);export{_ as default};
