@@ -32,30 +32,31 @@ const applyFilter = () => { refreshKey.value++; setStatsRange(dateFrom.value, da
 
 // ---- Widget kataloğu ----
 const COMPONENTS = { DashboardStatCard, DashboardTransactionChart, DashboardWeeklyOverview, DashboardRecentTransactions, DashboardTeamPerformance }
+// NOT: grid 10 sütunlu (5 stat kartı tek satıra tam otursun diye).
 const WIDGETS = {
-  stat_deposits:    { title: 'Toplam Yatırım',     comp: 'DashboardStatCard', props: { metric: 'deposits' },            minW: 2, minH: 3, defW: 3, defH: 3 },
-  stat_withdrawals: { title: 'Toplam Çekim',        comp: 'DashboardStatCard', props: { metric: 'withdrawals' },         minW: 2, minH: 3, defW: 3, defH: 3 },
-  stat_pending_dep: { title: 'Bekleyen Yatırım',    comp: 'DashboardStatCard', props: { metric: 'pending_deposits' },    minW: 2, minH: 3, defW: 3, defH: 3 },
-  stat_pending_wd:  { title: 'Bekleyen Çekim',      comp: 'DashboardStatCard', props: { metric: 'pending_withdrawals' }, minW: 2, minH: 3, defW: 3, defH: 3 },
-  stat_ibans:       { title: 'Kullanılabilir IBAN', comp: 'DashboardStatCard', props: { metric: 'available_ibans' },     minW: 2, minH: 3, defW: 3, defH: 3 },
-  chart:            { title: 'İşlem Hacmi',         comp: 'DashboardTransactionChart',   minW: 4, minH: 6, defW: 8, defH: 9 },
-  cases:            { title: 'Anlık Kasalar',       comp: 'DashboardWeeklyOverview',     minW: 3, minH: 6, defW: 4, defH: 9 },
-  recent:           { title: 'Son İşlemler',        comp: 'DashboardRecentTransactions', minW: 4, minH: 6, defW: 7, defH: 9 },
-  team_perf:        { title: 'Takım Performansı',   comp: 'DashboardTeamPerformance',    minW: 4, minH: 6, defW: 5, defH: 9, hideForMerchant: true },
+  stat_deposits:    { title: 'Toplam Yatırım',     comp: 'DashboardStatCard', props: { metric: 'deposits' },            minW: 2, minH: 2, defW: 2, defH: 2 },
+  stat_withdrawals: { title: 'Toplam Çekim',        comp: 'DashboardStatCard', props: { metric: 'withdrawals' },         minW: 2, minH: 2, defW: 2, defH: 2 },
+  stat_pending_dep: { title: 'Bekleyen Yatırım',    comp: 'DashboardStatCard', props: { metric: 'pending_deposits' },    minW: 2, minH: 2, defW: 2, defH: 2 },
+  stat_pending_wd:  { title: 'Bekleyen Çekim',      comp: 'DashboardStatCard', props: { metric: 'pending_withdrawals' }, minW: 2, minH: 2, defW: 2, defH: 2 },
+  stat_ibans:       { title: 'Kullanılabilir IBAN', comp: 'DashboardStatCard', props: { metric: 'available_ibans' },     minW: 2, minH: 2, defW: 2, defH: 2 },
+  chart:            { title: 'İşlem Hacmi',         comp: 'DashboardTransactionChart',   minW: 3, minH: 4, defW: 6, defH: 7 },
+  cases:            { title: 'Anlık Kasalar',       comp: 'DashboardWeeklyOverview',     minW: 3, minH: 4, defW: 4, defH: 7 },
+  recent:           { title: 'Son İşlemler',        comp: 'DashboardRecentTransactions', minW: 3, minH: 4, defW: 6, defH: 7 },
+  team_perf:        { title: 'Takım Performansı',   comp: 'DashboardTeamPerformance',    minW: 3, minH: 4, defW: 4, defH: 7, hideForMerchant: true },
 }
 
 const allowedIds = Object.keys(WIDGETS).filter(id => !(isMerchant && WIDGETS[id].hideForMerchant))
 
 const defaultLayout = () => ([
-  { i: 'stat_deposits',    x: 0, y: 0,  w: 3, h: 3 },
-  { i: 'stat_withdrawals', x: 3, y: 0,  w: 3, h: 3 },
-  { i: 'stat_pending_dep', x: 6, y: 0,  w: 3, h: 3 },
-  { i: 'stat_pending_wd',  x: 9, y: 0,  w: 3, h: 3 },
-  { i: 'stat_ibans',       x: 0, y: 3,  w: 3, h: 3 },
-  { i: 'chart',            x: 0, y: 6,  w: 8, h: 9 },
-  { i: 'cases',            x: 8, y: 6,  w: 4, h: 9 },
-  { i: 'recent',           x: 0, y: 15, w: 7, h: 9 },
-  { i: 'team_perf',        x: 7, y: 15, w: 5, h: 9 },
+  { i: 'stat_deposits',    x: 0, y: 0, w: 2, h: 2 },
+  { i: 'stat_withdrawals', x: 2, y: 0, w: 2, h: 2 },
+  { i: 'stat_pending_dep', x: 4, y: 0, w: 2, h: 2 },
+  { i: 'stat_pending_wd',  x: 6, y: 0, w: 2, h: 2 },
+  { i: 'stat_ibans',       x: 8, y: 0, w: 2, h: 2 },
+  { i: 'chart',            x: 0, y: 2, w: 6, h: 7 },
+  { i: 'cases',            x: 6, y: 2, w: 4, h: 7 },
+  { i: 'recent',           x: 0, y: 9, w: 6, h: 7 },
+  { i: 'team_perf',        x: 6, y: 9, w: 4, h: 7 },
 ].filter(it => allowedIds.includes(it.i)))
 
 // ---- Durum ----
@@ -162,11 +163,12 @@ onUnmounted(() => stopStats())
 
     <GridLayout
       v-model:layout="layout"
-      :col-num="12"
-      :row-height="40"
-      :margin="[12, 12]"
+      :col-num="10"
+      :row-height="50"
+      :margin="[10, 10]"
       :is-draggable="editMode"
       :is-resizable="editMode"
+      :vertical-compact="true"
       :responsive="false"
       :use-css-transforms="true"
     >
@@ -209,20 +211,22 @@ onUnmounted(() => stopStats())
 </template>
 
 <style scoped>
-.widget-box { block-size: 100%; display: flex; flex-direction: column; }
+.widget-box { block-size: 100%; position: relative; }
 .widget-toolbar {
+  position: absolute; inset-block-start: 0; inset-inline: 0;
   display: flex; align-items: center; gap: 2px;
-  padding: 2px 4px 2px 6px;
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  border-radius: 6px 6px 0 0;
+  block-size: 22px; padding: 0 4px 0 6px;
+  background: rgba(var(--v-theme-surface), 0.9);
+  border-radius: 8px 8px 0 0;
+  z-index: 5;
 }
 .widget-handle { cursor: move; }
-.widget-content { flex: 1 1 auto; min-block-size: 0; overflow: auto; }
+.widget-content { block-size: 100%; overflow: auto; }
 .widget-content :deep(.v-card) { block-size: 100%; }
 .edit-on {
   outline: 2px dashed rgba(var(--v-theme-primary), 0.45);
   outline-offset: 2px;
   border-radius: 8px;
 }
-.dash-grid-item :deep(.vgl-item__resizer) { z-index: 2; }
+.dash-grid-item :deep(.vgl-item__resizer) { z-index: 6; }
 </style>
