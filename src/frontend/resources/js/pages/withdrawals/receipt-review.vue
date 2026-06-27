@@ -232,7 +232,7 @@ const checkMeta = (text) => {
                 <div class="font-weight-medium">{{ item.recipient || '-' }}</div>
                 <div v-if="item.agent_name" class="text-caption text-medium-emphasis">Agent: {{ item.agent_name }}</div>
               </td>
-              <td class="text-body-2">{{ formatIban(item.iban) }}</td>
+              <td class="text-body-2"><CopyText :value="item.iban" :display="formatIban(item.iban)" /></td>
               <td class="text-end font-weight-bold">{{ formatMoney(item.amount) }}</td>
               <td>
                 <VChip :color="statusMeta(item.verification_status, item.manual_verifier_name).color" :prepend-icon="statusMeta(item.verification_status, item.manual_verifier_name).icon" size="small" label>
@@ -296,7 +296,7 @@ const checkMeta = (text) => {
       <VCardText>
         <VRow class="mb-2">
           <VCol cols="12" md="4"><div class="text-caption text-medium-emphasis">Tutar</div><div class="text-h5 font-weight-bold">{{ formatMoney(selectedItem.amount) }}</div></VCol>
-          <VCol cols="12" md="4"><div class="text-caption text-medium-emphasis">IBAN</div><div class="text-body-2">{{ formatIban(selectedItem.iban) }}</div></VCol>
+          <VCol cols="12" md="4"><div class="text-caption text-medium-emphasis">IBAN</div><div class="text-body-2"><CopyText :value="selectedItem.iban" :display="formatIban(selectedItem.iban)" /></div></VCol>
           <VCol cols="12" md="4"><div class="text-caption text-medium-emphasis">Takım</div><div class="text-body-2">{{ selectedItem.team_name || '-' }}</div></VCol>
         </VRow>
 

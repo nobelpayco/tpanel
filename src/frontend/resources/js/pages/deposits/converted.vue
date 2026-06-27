@@ -205,7 +205,7 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
               </td>
               <td>
                 <div class="text-body-2">{{ d.account_holder || '-' }}</div>
-                <div v-if="d.account_iban" class="text-caption text-medium-emphasis">{{ formatIban(d.account_iban) }}</div>
+                <div v-if="d.account_iban" class="text-caption text-medium-emphasis"><CopyText :value="d.account_iban" :display="formatIban(d.account_iban)" /></div>
                 <div v-if="d.bank_name" class="text-caption text-disabled">{{ shortBank(d.bank_name) }}</div>
               </td>
               <td class="text-end font-weight-bold">{{ formatMoney(d.amount) }}</td>
@@ -383,7 +383,7 @@ const historyStatusColor = (h) => statusColors[h.status] || 'default'
                 <th>Yatırılan Hesap</th>
                 <td>
                   <div class="font-weight-bold">{{ detailData.deposit.account_holder || '-' }}</div>
-                  <div class="text-caption">{{ formatIban(detailData.deposit.account_iban) }}</div>
+                  <div class="text-caption"><CopyText :value="detailData.deposit.account_iban" :display="formatIban(detailData.deposit.account_iban)" /></div>
                 </td>
               </tr>
               <tr>

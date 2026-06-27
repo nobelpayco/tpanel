@@ -233,7 +233,7 @@ const deleteAccount = async (id) => {
                 {{ acc.account_holder }}
                 <div class="text-caption text-medium-emphasis">{{ acc.account_code }}</div>
               </td>
-              <td class="text-body-2">{{ formatIban(acc.account_iban) }}</td>
+              <td class="text-body-2"><CopyText :value="acc.account_iban" :display="formatIban(acc.account_iban)" /></td>
               <td>{{ acc.bank_name }}</td>
               <td class="text-end">{{ formatMoney(acc.min_invest) }}</td>
               <td class="text-end">{{ formatMoney(acc.max_invest) }}</td>
@@ -491,7 +491,7 @@ const deleteAccount = async (id) => {
       <VCardText>
         <div class="mb-3 text-body-2 text-medium-emphasis">
           <strong>{{ sortTarget?.account_holder }}</strong>
-          <div class="text-caption">{{ formatIban(sortTarget?.account_iban) }}</div>
+          <div class="text-caption"><CopyText :value="sortTarget?.account_iban" :display="formatIban(sortTarget?.account_iban)" /></div>
           <div class="text-caption">Mevcut sıra: <strong>{{ sortTarget?.sort_order || '-' }}</strong></div>
         </div>
         <AppTextField

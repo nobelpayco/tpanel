@@ -569,7 +569,7 @@ const submitForceReject = async () => {
                 <div class="font-weight-medium">{{ w.name || '-' }}</div>
                 <div v-if="w.player_id" class="text-caption text-medium-emphasis">{{ w.player_id }}</div>
               </td>
-              <td class="text-body-2">{{ formatIban(w.iban) }}</td>
+              <td class="text-body-2"><CopyText :value="w.iban" :display="formatIban(w.iban)" /></td>
               <td class="text-end font-weight-bold">{{ formatMoney(w.amount) }}</td>
               <td>
                 <VChip :color="statusColors[w.status]" label size="x-small">
@@ -899,7 +899,7 @@ const submitForceReject = async () => {
             <table class="detail-table">
               <tr><th>Durum</th><td><VChip :color="statusColors[detailData.withdraw.status]" label size="small">{{ statusLabels[detailData.withdraw.status] }}</VChip></td></tr>
               <tr><th>Oluşturulma</th><td>{{ formatDate(detailData.withdraw.created_at) }}</td></tr>
-              <tr><th>IBAN</th><td>{{ formatIban(detailData.withdraw.iban) }}</td></tr>
+              <tr><th>IBAN</th><td><CopyText :value="detailData.withdraw.iban" :display="formatIban(detailData.withdraw.iban)" /></td></tr>
               <tr v-if="!isTeamMember"><th>Merchant</th><td>{{ detailData.withdraw.merchant_name || '-' }}</td></tr>
             </table>
           </VCol>
