@@ -36,6 +36,7 @@ services:
       Database__ServerVersion: "8.0.0-mysql"
       App__Name: "${APP_NAME:-TPanel}"
       App__Url: "${APP_URL:-http://localhost:8080}"
+      Auth__TokenExpirationMinutes: "${AUTH_TOKEN_EXPIRATION_MINUTES:-1440}"
       # Opsiyonel — boş bırakılırsa Telegram/AI no-op çalışır:
       Telegram__BotToken: "${TELEGRAM_BOT_TOKEN:-}"
       Telegram__PayrouteChatId: "${TELEGRAM_PAYROUTE_CHAT_ID:-}"
