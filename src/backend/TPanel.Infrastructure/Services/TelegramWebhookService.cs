@@ -70,12 +70,13 @@ public class TelegramWebhookService : ITelegramWebhookService
 
         if (FinTag.IsMatch(text)) { await HandleFinTag(m, chatId.Value.ToString(), text, messageId, ct); return; }
 
-        // /liste — yalnızca başlığında "DESTEK" geçen kanallarda; aktif banka hesaplarını listele (salt-okuma)
+        // /liste — özel (DM) sohbette VEYA başlığında "DESTEK" geçen kanallarda; aktif banka hesaplarını listele (salt-okuma)
         if (ListeCmd.IsMatch(text))
         {
+            var cType = chat is null ? null : Str(chat.Value, "type");
             var chatTitle = chat is null ? null : Str(chat.Value, "title");
-            if (chatTitle is not null && chatTitle.Contains("DESTEK", StringComparison.OrdinalIgnoreCase))
-                await HandleListeCmd(chatId.Value.ToString(), messageId, ct);
+            var allowed = cType == "private" || (chatTitle is not null && chatTitle.Contains("DESTEK", StringComparison.OrdinalIgnoreCase));
+            if (allowed) await HandleListeCmd(chatId.Value.ToString(), messageId, ct);
             return;
         }
 
