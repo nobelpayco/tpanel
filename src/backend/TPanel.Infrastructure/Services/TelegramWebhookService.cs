@@ -266,18 +266,17 @@ public class TelegramWebhookService : ITelegramWebhookService
     {
         using var c = await _factory.CreateOpenConnectionAsync(ct);
         var rows = (await c.QueryAsync(@"
-            SELECT ba.account_holder, ba.account_iban, b.name AS bank_name
+            SELECT ba.account_holder
             FROM bankAccounts ba
-            LEFT JOIN banks b ON ba.bank_id = b.id
             WHERE ba.status = 1
-            ORDER BY b.name, ba.account_holder")).ToList();
+            ORDER BY ba.account_holder")).ToList();
 
         if (rows.Count == 0) { await _telegram.SendTextAsync(chatId, "ℹ️ Aktif banka hesabı bulunmuyor.", "HTML", messageId, ct); return; }
 
         var sb = new System.Text.StringBuilder();
         sb.Append($"🏦 <b>Aktif Banka Hesapları</b> ({rows.Count})\n\n");
         foreach (var r in rows)
-            sb.Append($"• {Esc((string?)r.account_holder ?? "-")} — {Esc((string?)r.bank_name ?? "-")}\n<code>{Esc((string?)r.account_iban ?? "-")}</code>\n");
+            sb.Append($"• {Esc((string?)r.account_holder ?? "-")}\n");
 
         var msg = sb.ToString().TrimEnd();
         if (msg.Length > 4000) msg = msg.Substring(0, 3900) + "\n…(liste uzun, kısaltıldı)";
