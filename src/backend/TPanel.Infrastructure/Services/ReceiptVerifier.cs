@@ -134,12 +134,20 @@ public class ReceiptVerifier : IReceiptVerifier
 
         var expDigits = Regex.Replace(expIban, "[^0-9]", "");
         var expLast4 = expDigits.Length >= 4 ? expDigits[^4..] : "";
-        var ibanFull = Str(j, "iban_full");
+        // Önce yapısal "iban_last4" alanını baz al (iban_full OCR'ı sık yanlış/transpoze okur); yoksa iban_full'e düş.
         string rLast4 = "";
-        if (!string.IsNullOrEmpty(ibanFull)) { var d = Regex.Replace(ibanFull!, "[^0-9]", ""); if (d.Length >= 4) rLast4 = d[^4..]; }
-        if (rLast4 == "" && Str(j, "iban_last4") is { } l4) { var d = Regex.Replace(l4, "[^0-9]", ""); if (d.Length >= 4) rLast4 = d[^4..]; }
-        if (expLast4 != "" && rLast4 != "" && expLast4 == rLast4) { score += 25; notes.Add($"IBAN son 4 hane eşleşiyor (****{expLast4})."); }
-        else if (expLast4 != "" && rLast4 != "") notes.Add($"IBAN son 4 hane uyumsuz (dekont: {rLast4}, beklenen: {expLast4}).");
+        if (Str(j, "iban_last4") is { } l4f) { var d = Regex.Replace(l4f, "[^0-9]", ""); if (d.Length >= 4) rLast4 = d[^4..]; }
+        if (rLast4 == "")
+        {
+            var ibanFull = Str(j, "iban_full");
+            if (!string.IsNullOrEmpty(ibanFull)) { var d = Regex.Replace(ibanFull!, "[^0-9]", ""); if (d.Length >= 4) rLast4 = d[^4..]; }
+        }
+        if (expLast4 != "" && rLast4 != "")
+        {
+            if (expLast4 == rLast4) { score += 25; notes.Add($"IBAN son 4 hane eşleşiyor (****{expLast4})."); }
+            else if (SameDigitsAnyOrder(expLast4, rLast4)) { score += 25; notes.Add($"IBAN son 4 hane eşleşiyor (****{expLast4}; OCR rakam sırası normalize edildi)."); }
+            else notes.Add($"IBAN son 4 hane uyumsuz (dekont: {rLast4}, beklenen: {expLast4}).");
+        }
         else if (expLast4 != "") notes.Add("IBAN okunamadı (manuel kontrol önerilir).");
 
         var expName = NormalizeName((string?)invest.name ?? "");
@@ -181,6 +189,15 @@ public class ReceiptVerifier : IReceiptVerifier
     private static bool Bool(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.True;
     private static double? Num(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : (v.ValueKind == JsonValueKind.String && double.TryParse(v.GetString(), out var d) ? d : null);
     private static string? Str(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+
+    // OCR son-4 rakamlarını sık sık sıra-değiştirerek (transpoze) okur; aynı rakam kümesiyse eşleşmiş say.
+    private static bool SameDigitsAnyOrder(string a, string b)
+    {
+        if (a.Length != b.Length) return false;
+        var ca = a.ToCharArray(); var cb = b.ToCharArray();
+        Array.Sort(ca); Array.Sort(cb);
+        return new string(ca) == new string(cb);
+    }
 
     private static string NormalizeName(string name)
     {
