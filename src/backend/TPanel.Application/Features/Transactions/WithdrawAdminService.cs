@@ -14,7 +14,7 @@ public interface IWithdrawAdminService
     Task<ApiResult> DetailAsync(User user, int id, CancellationToken ct = default);
     Task<ApiResult> TakeAsync(User user, int id, string ip, CancellationToken ct = default);
     Task<ApiResult> ReleaseAsync(User user, int id, string ip, CancellationToken ct = default);
-    Task<ApiResult> ApproveAsync(User user, int id, string ip, CancellationToken ct = default);
+    Task<ApiResult> ApproveAsync(User user, int id, string ip, string? reason = null, CancellationToken ct = default);
     Task<ApiResult> RejectAsync(User user, int id, int rejectType, string ip, CancellationToken ct = default);
     /// <summary>Onaylı (status=3) çekimi reddet — yalnızca Süper Admin, sebep zorunlu, CALLBACK GÖNDERİLMEZ.</summary>
     Task<ApiResult> ForceRejectAsync(User user, int id, string reason, string ip, CancellationToken ct = default);
@@ -170,7 +170,7 @@ public class WithdrawAdminService : IWithdrawAdminService
         return ApiResult.Msg(200, "İşlem bırakıldı.");
     }
 
-    public async Task<ApiResult> ApproveAsync(User user, int id, string ip, CancellationToken ct = default)
+    public async Task<ApiResult> ApproveAsync(User user, int id, string ip, string? reason = null, CancellationToken ct = default)
     {
         if (!user.CanApproveTransactions) return ApiResult.Msg(403, "Bu işlem için yetkiniz yok.");
         var invest = await _store.GetInvestRawAsync(id, ct);
@@ -180,31 +180,49 @@ public class WithdrawAdminService : IWithdrawAdminService
         if (!await _store.HasReceiptAsync(id, ct))
             return ApiResult.Msg(422, "Onay için en az bir dekont yüklemeniz gerekiyor.");
 
-        // Sahte/şüpheli dekont koruması — admin (Süper/Sub) hariç, AI doğrulaması zorunlu:
-        // pending ise beklet, şüpheli/reddedildiyse yalnız yönetici onaylayabilsin.
-        if (!user.IsAdmin)
+        // Sahte/şüpheli dekont koruması:
+        //  - Admin DEĞİLSE: AI doğrulaması (verified) zorunlu; değilse engelle.
+        //  - Admin İSE: doğrulanmamış dekontu onaylayabilir ama ZORUNLU GEREKÇE ile (izlenebilir override).
+        var (hasVerified, hasPending, _) = await _store.GetReceiptVerifySummaryAsync(id, ct);
+        var overrideReason = (reason ?? "").Trim();
+        var isOverride = false;
+        if (!hasVerified)
         {
-            var (hasVerified, hasPending, _) = await _store.GetReceiptVerifySummaryAsync(id, ct);
-            if (!hasVerified)
+            if (!user.IsAdmin)
                 return ApiResult.Msg(422, hasPending
                     ? "Dekont AI doğrulaması henüz tamamlanmadı. Lütfen birkaç saniye sonra tekrar deneyin."
                     : "Dekont doğrulanamadı (şüpheli/reddedildi). Bu çekimi yalnızca yönetici onaylayabilir.");
+
+            // Admin override — gerekçe yoksa frontend'e "gerekçe iste" sinyali dön.
+            if (overrideReason.Length == 0)
+                return new ApiResult(422, new
+                {
+                    message = hasPending
+                        ? "Dekont AI doğrulaması henüz tamamlanmadı. Yine de onaylamak için gerekçe girin."
+                        : "Bu dekont doğrulanmadı (şüpheli/reddedildi). Onaylamak için gerekçe girin.",
+                    requires_reason = true,
+                });
+            isOverride = true;
         }
 
         await _store.UpdateInvestAsync(id, new Dictionary<string, object?>
         {
             ["status"] = 3, ["agent_id"] = user.Id, ["finalize_date"] = _clock.Now,
         }, ct);
-        await _store.InsertInvestLogAsync(id, user.Id, ip, 3, "Çekim onaylandı", ct);
+        var logDetail = isOverride
+            ? $"Çekim onaylandı [DOĞRULANMAMIŞ DEKONT — yönetici override, gerekçe: {overrideReason}]"
+            : "Çekim onaylandı";
+        await _store.InsertInvestLogAsync(id, user.Id, ip, 3, logDetail, ct);
 
         var updated = await _store.GetInvestAsync(id, ct);
         if (updated is not null) await _callbacks.SendForInvestAsync(updated, true, triggeredBy: user.Id, ct: ct);
         if (invest.TeamId is not null) await _banks.EnforceMaxCaseAsync(new[] { invest.TeamId.Value }, ct);
 
-        _audit.Set($"Çekim onaylandı — #{id} (₺{invest.Amount:N2})", "invest", id.ToString(),
-            new { status = invest.Status }, new { status = "3" });
+        _audit.Set($"Çekim onaylandı — #{id} (₺{invest.Amount:N2})" + (isOverride ? " — DOĞRULANMAMIŞ DEKONT override" : ""),
+            "invest", id.ToString(),
+            new { status = invest.Status }, new { status = "3", override_reason = isOverride ? overrideReason : null });
 
-        return ApiResult.Msg(200, "Çekim onaylandı.");
+        return ApiResult.Msg(200, isOverride ? "Çekim onaylandı (doğrulanmamış dekont — gerekçe kaydedildi)." : "Çekim onaylandı.");
     }
 
     public async Task<ApiResult> ForceRejectAsync(User user, int id, string reason, string ip, CancellationToken ct = default)
