@@ -42,7 +42,7 @@ services:
       Telegram__PayrouteChatId: "${TELEGRAM_PAYROUTE_CHAT_ID:-}"
       Telegram__WebhookSecret: "${TELEGRAM_WEBHOOK_SECRET:-}"
     ports:
-      - "8080:8080"
+      - "${HTTP_PORT:-8080}:8080"
     volumes:
       - storage:/app/storage        # dekont/dosya yüklemeleri kalıcı
 
