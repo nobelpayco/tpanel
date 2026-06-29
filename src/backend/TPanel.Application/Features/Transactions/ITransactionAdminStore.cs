@@ -39,6 +39,8 @@ public interface ITransactionAdminStore
 
     // ---- Withdraw receipts ----
     Task<bool> HasReceiptAsync(int investId, CancellationToken ct = default);
+    /// <summary>İşlemin dekontlarının AI doğrulama özeti (onay kapısı için).</summary>
+    Task<(bool HasVerified, bool HasPending, bool HasBad)> GetReceiptVerifySummaryAsync(int investId, CancellationToken ct = default);
     Task<IReadOnlyList<ReceiptRow>> GetReceiptsAsync(int investId, CancellationToken ct = default);
     Task<ReceiptRow?> GetReceiptAsync(int investId, int receiptId, CancellationToken ct = default);
     Task<int> InsertReceiptAsync(ReceiptInsert data, CancellationToken ct = default);

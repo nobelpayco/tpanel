@@ -180,6 +180,17 @@ public class WithdrawAdminService : IWithdrawAdminService
         if (!await _store.HasReceiptAsync(id, ct))
             return ApiResult.Msg(422, "Onay için en az bir dekont yüklemeniz gerekiyor.");
 
+        // Sahte/şüpheli dekont koruması — admin (Süper/Sub) hariç, AI doğrulaması zorunlu:
+        // pending ise beklet, şüpheli/reddedildiyse yalnız yönetici onaylayabilsin.
+        if (!user.IsAdmin)
+        {
+            var (hasVerified, hasPending, _) = await _store.GetReceiptVerifySummaryAsync(id, ct);
+            if (!hasVerified)
+                return ApiResult.Msg(422, hasPending
+                    ? "Dekont AI doğrulaması henüz tamamlanmadı. Lütfen birkaç saniye sonra tekrar deneyin."
+                    : "Dekont doğrulanamadı (şüpheli/reddedildi). Bu çekimi yalnızca yönetici onaylayabilir.");
+        }
+
         await _store.UpdateInvestAsync(id, new Dictionary<string, object?>
         {
             ["status"] = 3, ["agent_id"] = user.Id, ["finalize_date"] = _clock.Now,
