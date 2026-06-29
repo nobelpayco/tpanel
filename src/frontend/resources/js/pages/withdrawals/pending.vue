@@ -335,6 +335,20 @@ const releaseWithdraw = async (id) => {
   else { snackbar.handleError(data) }
 }
 
+// Ortak onay: doğrulanmamış dekontta backend "requires_reason" dönerse yöneticiden gerekçe iste ve tekrar gönder.
+const submitApprove = async (id, reason = null) => {
+  const body = reason ? { id, reason } : { id }
+  const res = await fetch('/api/withdrawals/approve', { method: 'POST', headers, body: JSON.stringify(body) })
+  const data = await res.json()
+  if (res.ok) { snackbar.success(data.message); showActionDialog.value = false; fetchData(); return }
+  if (res.status === 422 && data.requires_reason) {
+    const r = window.prompt((data.message || 'Bu dekont doğrulanmadı.') + '\n\nOnay gerekçesini yazın (zorunlu):', '')
+    if (r && r.trim()) { await submitApprove(id, r.trim()); return }
+    return // iptal edildi
+  }
+  snackbar.handleError(data)
+}
+
 const quickApprove = async (w) => {
   if (!w.receipt_count || w.receipt_count === 0) {
     snackbar.error('Onay için en az bir dekont yüklemeniz gerekiyor. Detay penceresinden ekleyebilirsiniz.')
@@ -342,10 +356,7 @@ const quickApprove = async (w) => {
     return
   }
   if (!confirm('Bu çekimi onaylamak istediğinize emin misiniz?')) return
-  const res = await fetch('/api/withdrawals/approve', { method: 'POST', headers, body: JSON.stringify({ id: w.id }) })
-  const data = await res.json()
-  if (res.ok) { snackbar.success(data.message); showActionDialog.value = false; fetchData() }
-  else { snackbar.handleError(data) }
+  await submitApprove(w.id)
 }
 
 const approveFromDialog = async () => {
@@ -355,10 +366,7 @@ const approveFromDialog = async () => {
     return
   }
   if (!confirm('Bu çekimi onaylamak istediğinize emin misiniz?')) return
-  const res = await fetch('/api/withdrawals/approve', { method: 'POST', headers, body: JSON.stringify({ id: selectedWithdraw.value.id }) })
-  const data = await res.json()
-  if (res.ok) { snackbar.success(data.message); showActionDialog.value = false; fetchData() }
-  else { snackbar.handleError(data) }
+  await submitApprove(selectedWithdraw.value.id)
 }
 
 const quickReject = async (w, rejectType = 1) => {

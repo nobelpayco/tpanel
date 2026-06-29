@@ -73,10 +73,10 @@ public class WithdrawalsController : AdminControllerBase
     }
 
     [HttpPost("approve")]
-    public async Task<IActionResult> Approve([FromBody] IdBody body, CancellationToken ct)
+    public async Task<IActionResult> Approve([FromBody] ApproveWithdrawBody body, CancellationToken ct)
     {
         var (user, err) = await AuthAsync(ct); if (err is not null) return err;
-        return Result(await _service.ApproveAsync(user!, body.Id, ClientIp, ct));
+        return Result(await _service.ApproveAsync(user!, body.Id, ClientIp, body.Reason, ct));
     }
 
     [HttpPost("reject")]

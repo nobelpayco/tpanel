@@ -60,6 +60,10 @@ public record RejectBody(
 public record IdBody(
     [property: System.Text.Json.Serialization.JsonPropertyName("id")] int Id);
 
+public record ApproveWithdrawBody(
+    [property: System.Text.Json.Serialization.JsonPropertyName("id")] int Id,
+    [property: System.Text.Json.Serialization.JsonPropertyName("reason")] string? Reason);
+
 public record BulkAssignBody(
     [property: System.Text.Json.Serialization.JsonPropertyName("ids")] List<int>? Ids,
     [property: System.Text.Json.Serialization.JsonPropertyName("team_id")] int? TeamId);
