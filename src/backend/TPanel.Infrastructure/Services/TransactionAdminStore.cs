@@ -353,6 +353,19 @@ public class TransactionAdminStore : ITransactionAdminStore
         return await conn.ExecuteScalarAsync<int>("SELECT EXISTS(SELECT 1 FROM invest_receipts WHERE invest_id = @id)", new { id = investId }) == 1;
     }
 
+    public async Task<(bool HasVerified, bool HasPending, bool HasBad)> GetReceiptVerifySummaryAsync(int investId, CancellationToken ct = default)
+    {
+        using var conn = await _factory.CreateOpenConnectionAsync(ct);
+        var row = await conn.QueryFirstOrDefaultAsync(@"
+            SELECT
+              SUM(verification_status IN ('verified','manually_verified')) AS verified,
+              SUM(verification_status = 'pending') AS pending,
+              SUM(verification_status IN ('suspicious','rejected')) AS bad
+            FROM invest_receipts WHERE invest_id = @id", new { id = investId });
+        if (row is null) return (false, false, false);
+        return (Convert.ToInt32(row.verified ?? 0) > 0, Convert.ToInt32(row.pending ?? 0) > 0, Convert.ToInt32(row.bad ?? 0) > 0);
+    }
+
     public async Task<IReadOnlyList<ReceiptRow>> GetReceiptsAsync(int investId, CancellationToken ct = default)
     {
         using var conn = await _factory.CreateOpenConnectionAsync(ct);
